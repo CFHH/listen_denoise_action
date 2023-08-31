@@ -2,9 +2,9 @@ Data:
   segment_length: 150
   style_index: [1]
   trim_edges: 300
-  traindata_filename: dance_train_files_kth.txt
-  testdata_filename: dance_test_files_kth.txt
-  input_modality: audio35_30fps
+  traindata_filename: dance_train_files.txt
+  testdata_filename: dance_test_files.txt
+  input_modality: audio29_30fps
   output_modality: expmap_30fps
   input_feats_file: ch0_spec_beatact_features.txt
   datapipe_filename: data_pipe.expmap_30fps.sav
@@ -73,7 +73,7 @@ pruning_amount: 0.0
 quantization: false
 Trainer:
     accelerator: gpu
-    devices: [2]
+    devices: [0]
     accumulate_grad_batches: 1
     default_root_dir: results/training/dance_LDA-U
     gradient_clip_val: 25
