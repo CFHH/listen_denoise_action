@@ -43,6 +43,12 @@ def dataloaders(dataset_root, data_hparams, batch_size, num_workers):
     return train_dl, val_dl, test_dl
 
 if __name__ == "__main__":
+    """
+    python train.py "./data/motorica_dance" "./hparams/diffusion_dance_LDA.yaml"
+    以下不行
+        python train.py --dataset_root "./data" --hparams_file "./hparams/diffusion_dance_LDA.yaml"
+        python train.py dataset_root="./data" hparams_file="./hparams/diffusion_dance_LDA.yaml"
+    """
 
     hparams, conf_name = get_hparams()
     assert os.path.exists(

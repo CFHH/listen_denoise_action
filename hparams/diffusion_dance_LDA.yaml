@@ -2,10 +2,10 @@ Data:
   segment_length: 150
   style_index: [1]
   trim_edges: 300
-  styles_file: dance_styles_kth.txt
-  traindata_filename: dance_train_files_kth.txt
-  testdata_filename: dance_test_files_kth.txt
-  input_modality: audio35_30fps
+  styles_file: dance_styles.txt
+  traindata_filename: dance_train_files.txt
+  testdata_filename: dance_test_files.txt
+  input_modality: audio29_30fps
   output_modality: expmap_30fps
   input_feats_file: ch0_spec_beatact_features.txt
   datapipe_filename: data_pipe.expmap_30fps.sav
