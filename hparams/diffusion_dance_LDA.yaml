@@ -73,7 +73,7 @@ pruning_amount: 0.0
 quantization: false
 Trainer:
     accelerator: gpu
-    devices: [2]
+    devices: [0]
     accumulate_grad_batches: 1
     default_root_dir: results/training/dance_LDA
     gradient_clip_val: 25
