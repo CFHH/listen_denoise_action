@@ -8,7 +8,7 @@ if [ ! -d "${dest_dir}" ]; then
 fi
 
 data_dir=data/motorica_dance
-wav_dir=data/motorica_dance
+wav_dir=data/motorica_dance/wav
 basenames=$(cat "${data_dir}/gen_files.txt")
 
 start=0

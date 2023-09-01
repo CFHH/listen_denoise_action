@@ -4,3 +4,5 @@ results/*
 data/
 .idea/
 dl_dataset/
+results/
+pretrained_models/*.ckpt

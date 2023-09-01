@@ -48,6 +48,15 @@ if __name__ == "__main__":
     以下不行
         python train.py --dataset_root "./data" --hparams_file "./hparams/diffusion_dance_LDA.yaml"
         python train.py dataset_root="./data" hparams_file="./hparams/diffusion_dance_LDA.yaml"
+    
+    用cpu训练的配置   
+    Trainer:
+        accelerator: cpu
+        devices: 1
+    用gpu训练的配置 
+    Trainer:
+        accelerator: gpu
+        devices: [0]
     """
 
     hparams, conf_name = get_hparams()
