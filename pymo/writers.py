@@ -30,8 +30,14 @@ class BVHWriter():
 
         # Writing the data
         self.motions_ = np.asarray(self.motions_).T
-        lines = [" ".join(item) for item in self.motions_[start:stop].astype(str)]
-        ofile.write("".join("%s\n"%l for l in lines))
+        #lines = [" ".join(item) for item in self.motions_[start:stop].astype(str)]
+        #ofile.write("".join("%s\n"%l for l in lines))
+        for frame_data in self.motions_[start:stop]:
+            # self.motions_[start:stop].shape = (frame, 156)
+            num_str_list = ['%06f' % num for num in frame_data]
+            line_str = ' '.join(num_str_list)
+            line_str += '\n'
+            ofile.write(line_str)
 
     def _printJoint(self, X, joint, tab, ofile):
         
