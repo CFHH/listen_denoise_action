@@ -67,13 +67,13 @@ Validation:
   max_render_clips: 10
   gen_synth_ctrl: false
 lr: 0.0006
-batch_size: 80
+batch_size: 20  # 填80需要显存超过24G，填20需要10G显存
 num_dataloader_workers: 1
 pruning_amount: 0.0
 quantization: false
 Trainer:
-    accelerator: gpu
-    devices: [0]
+    accelerator: gpu  # gpu    cpu
+    devices: [0]      # [0]    1
     accumulate_grad_batches: 1
     default_root_dir: results/training/dance_LDA
     gradient_clip_val: 25
