@@ -82,4 +82,4 @@ Trainer:
     max_epochs: 10
     min_epochs: 1
     precision: 32
-    resume_from_checkpoint: null 
+    resume_from_checkpoint: null  # results/training/dance_LDA/lightning_logs/version_0/checkpoints/epoch=0-step=108150.ckpt

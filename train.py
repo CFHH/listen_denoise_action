@@ -45,6 +45,7 @@ def dataloaders(dataset_root, data_hparams, batch_size, num_workers):
 if __name__ == "__main__":
     """
     python train.py "./data/motorica_dance" "./hparams/diffusion_dance_LDA.yaml"
+    nohup python train.py "./data/motorica_dance" "./hparams/diffusion_dance_LDA.yaml" > logtrain1.log 2>&1 &
     以下不行
         python train.py --dataset_root "./data" --hparams_file "./hparams/diffusion_dance_LDA.yaml"
         python train.py dataset_root="./data" hparams_file="./hparams/diffusion_dance_LDA.yaml"
