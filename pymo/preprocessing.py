@@ -1178,7 +1178,7 @@ class RootTransformer(BaseEstimator, TransformerMixin):
                 
                 """ Get Trajectory and smooth it"""                
                 trajectory_filterwidth = self.position_smoothing
-                #reference = positions.copy()*np.array([1,0,1])
+                reference = positions.copy()*np.array([1,0,1])
                 if trajectory_filterwidth>0:
                     reference = filters.gaussian_filter1d(positions, trajectory_filterwidth, axis=0, mode='nearest')
                 
