@@ -71,13 +71,13 @@ class LitLDA(BaseModel):
         return noisy_poses, noise
         
     def forward(self, batch):
-
+        # ctrl是音乐数据(batch_size，segment_length，3)，global_cond是style数据(...，8)，poses是动作数据(...，61)
         ctrl, global_cond, poses =batch
                 
         N, T, C = poses.shape
 
         num_noisesteps = self.n_noise_schedule
-        t = torch.randint(0, num_noisesteps, [N], device=poses.device)
+        t = torch.randint(0, num_noisesteps, [N], device=poses.device) # (batch_size,)
 
         noise = torch.randn_like(poses)
         noise_scale = self.noise_level.type_as(noise)[t].unsqueeze(1).unsqueeze(2).repeat(1,T,C)
@@ -98,7 +98,7 @@ class LitLDA(BaseModel):
 
     def validation_step(self, batch, batch_idx):
 
-        loss = self(batch)
+        loss = self(batch) # forward()
 
         self.log('val_loss', loss, prog_bar=True, sync_dist=True)
 

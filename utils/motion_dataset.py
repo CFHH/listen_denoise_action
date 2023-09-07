@@ -33,8 +33,8 @@ def nans2zeros(x):
     return x
         
 def dataframe_nansinf2zeros(df):
-    df.fillna(0, inplace=True)
-    df.replace([np.inf, -np.inf], 0, inplace=True)
+    df.fillna(0, inplace=True) # 用0填充NA/NaN
+    df.replace([np.inf, -np.inf], 0, inplace=True) # 用0填充np.inf和-np.inf
     return df
     
 def align_start(x,y):
@@ -119,7 +119,7 @@ class MotionDataset(torch.utils.data.Dataset):
             infeats_cols = np.loadtxt(infeats_file, dtype=str).tolist()
             with open(indata_file, 'rb') as f:
                 in_feats = dataframe_nansinf2zeros(pkl.load(f).astype('float32'))
-                in_feats = in_feats[infeats_cols].values
+                in_feats = in_feats[infeats_cols].values # type(in_feats) = <class 'pandas.core.frame.DataFrame'>
                 self.n_input = in_feats.shape[1]
                 
             #output
@@ -153,7 +153,7 @@ class MotionDataset(torch.utils.data.Dataset):
             if n_frames >= seglen:
                 idx_array = torch.arange(start_idx, start_idx + n_frames).unfold(
                         0, seglen, 1
-                    )
+                    ) # (n_frames, seglen)，左上角是0，右下角是n_frames-1，各行各列都递增
                 data["input"].append(in_feats)
                 data["output"].append(out_feats)
                 if self.n_styles>0:
@@ -161,7 +161,7 @@ class MotionDataset(torch.utils.data.Dataset):
                 indexes.append(idx_array)                
                 start_idx += n_frames
                 
-        #flatten vertically and make into a torch tensor
+        #flatten vertically and make into a torch tensor. 把不同音乐动作的数据按帧拼在了一起
         data["input"]=torch.from_numpy(np.vstack(data["input"])).float()
         data["output"]=torch.from_numpy(np.vstack(data["output"])).float()
         if self.n_styles>0:
@@ -171,7 +171,8 @@ class MotionDataset(torch.utils.data.Dataset):
         self.data = data
 
         indexes=torch.cat(indexes, dim=0)
-        self.indexes = indexes[torch.randperm(indexes.size(0))]
+        self.indexes = indexes[torch.randperm(indexes.size(0))] # 以行为单位，打乱次序
+        return
         
     def assert_not_const(self, data):
         eps = 1e-6
@@ -212,6 +213,8 @@ class MotionDataset(torch.utils.data.Dataset):
             return data[:segment_length]
         
     def __getitem__(self, index):
+        # self.indexes[index] 是随机选一行，一行是165个连续整数
+        # in_feats, out_feats 是连续的165帧数据，但数据从构成上讲可能并不连续，可能是一个动作尾+一个动作头
         in_feats = self.data["input"][self.indexes[index]]
         out_feats = self.data["output"][self.indexes[index]]
         
@@ -219,6 +222,7 @@ class MotionDataset(torch.utils.data.Dataset):
             #note that the sequences are longer than specified so we can resample faster speeds
             if torch.rand((1,))<self.timestretch_prob:            
                 #resample and cut to specified seq len
+                #有一定的概率（20%），先从165（=segment_length*(1+timestretch_factor)）帧数据中取不等于150帧，然后缩放到150帧
                 segment_length = self.segment_length
                 factor = torch.rand((1,))*self.timestretch_factor*2-self.timestretch_factor + 1
                 in_feats = self.timestretch(in_feats, segment_length, factor, has_root_motion=False)
