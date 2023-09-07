@@ -23,18 +23,24 @@ def dataframe_nansinf2zeros(df):
     df.replace([np.inf, -np.inf], 0, inplace=True) # 用0填充np.inf和-np.inf
     return df
 
+
 def feats_to_bvh(pred_clips):
     # import pdb;pdb.set_trace()
     data_pipeline = jl.load('./data/motorica_dance/data_pipe.expmap_30fps.sav')
     n_feats = data_pipeline["cnt"].n_features
     data_pipeline["root"].separate_root = False
-
     print('inverse_transform...')
     bvh_data = data_pipeline.inverse_transform(pred_clips[:, :, :n_feats])
     return bvh_data
 
 
-def test_audio_file():
+def write_bvh(bvh_data, fname):
+    writer = BVHWriter()
+    with open(fname, 'w') as f:
+        writer.write(bvh_data, f)
+
+
+def process_audio():
     file1 = './data/motorica_dance/kthjazz_gCH_sFM_cAll_d02_mCH_ch01_beatlestreetwashboardbandfortyandtight_003_00.audio29_30fps.pkl'
     with open(file1, 'rb') as f1:
         data1 = pkl.load(f1).astype('float32')
@@ -55,23 +61,7 @@ def test_audio_file():
     return
 
 
-def test_motion_file():
-    file2 = './data/motorica_dance/kthjazz_gCH_sFM_cAll_d02_mCH_ch01_beatlestreetwashboardbandfortyandtight_003_00.expmap_30fps.pkl'
-    with open(file2, 'rb') as f2:
-        data2 = pkl.load(f2).astype('float32')
-        feats2 = dataframe_nansinf2zeros(data2).values
-    return
-
-
-def test_sav_file():
-    filename = './data/motorica_dance/data_pipe.expmap_30fps.sav'
-    data_pipeline = jl.load(filename)
-    n_feats = data_pipeline["cnt"].n_features
-    data_pipeline["root"].separate_root = False
-    return
-
-
-def test_bvh():
+def process_motion():
     # 加载pkl文件
     pkl_file = './data/motorica_dance/kthjazz_gCH_sFM_cAll_d02_mCH_ch01_beatlestreetwashboardbandfortyandtight_003_00.expmap_30fps.pkl'
     with open(pkl_file, 'rb') as f2:
@@ -83,8 +73,12 @@ def test_bvh():
     filename = './data/bvh/kthjazz_gCH_sFM_cAll_d02_mCH_ch01_beatlestreetwashboardbandfortyandtight_003.bvh'
     bvh_parser = BVHParser()
     bvh_data = bvh_parser.parse(filename)
+    # 这算成30fps
     bvh_data.values = bvh_data.values[::4]
     bvh_data.framerate = bvh_data.framerate * 4
+    # 保存一下
+    write_bvh(bvh_data, './raw.bvh')
+
     print(type(bvh_data))
     nframes = bvh_data.values.shape[0]
     bvh_datas = [bvh_data]
@@ -110,22 +104,27 @@ def test_bvh():
     # 比较差异
     pkl_diff = my_pkl_data_final - pkl_data
 
-    # 转回bvh
-    pred_clips = pkl_data.values[np.newaxis,...]
-    pred_bvh_datas = feats_to_bvh(pred_clips)
-    pred_bvh_data = pred_bvh_datas[0]
-    bvh_diff = pred_bvh_data.values[bvh_data.values.columns].values - bvh_data.values[bvh_data.values.columns].values
-    pred_bvh_data.values['Hips_Xposition'] += bvh_data.values['Hips_Xposition'][0] - pred_bvh_data.values['Hips_Xposition'][0]
-    pred_bvh_data.values['Hips_Zposition'] += bvh_data.values['Hips_Zposition'][0] - pred_bvh_data.values['Hips_Zposition'][0]
+    # pkl_data转回bvh
+    pkl_clips = pkl_data.values[np.newaxis,...]
+    pkl_bvh_datas = feats_to_bvh(pkl_clips)
+    pkl_bvh_data = pkl_bvh_datas[0]
+    pkl_bvh_diff = pkl_bvh_data.values[bvh_data.values.columns].values - bvh_data.values[bvh_data.values.columns].values
+    pkl_bvh_data.values['Hips_Xposition'] += bvh_data.values['Hips_Xposition'][0] - pkl_bvh_data.values['Hips_Xposition'][0]
+    pkl_bvh_data.values['Hips_Zposition'] += bvh_data.values['Hips_Zposition'][0] - pkl_bvh_data.values['Hips_Zposition'][0]
+    write_bvh(pkl_bvh_data, './pkl.bvh')
 
-    # 写bvh
-    writer = BVHWriter()
-    fname = f"./test.bvh"
-    with open(fname, 'w') as f:
-        writer.write(pred_bvh_data, f)
+    #pkl_data转回bvh
+    my_clips = my_pkl_data_final.values[np.newaxis, ...]
+    my_bvh_datas = feats_to_bvh(my_clips)
+    my_bvh_data = my_bvh_datas[0]
+    my_bvh_diff = my_bvh_data.values[bvh_data.values.columns].values - bvh_data.values[bvh_data.values.columns].values
+    my_bvh_data.values['Hips_Xposition'] += bvh_data.values['Hips_Xposition'][0] - my_bvh_data.values['Hips_Xposition'][0]
+    my_bvh_data.values['Hips_Zposition'] += bvh_data.values['Hips_Zposition'][0] - my_bvh_data.values['Hips_Zposition'][0]
+    write_bvh(my_bvh_data, './mine.bvh')
 
     return
 
 
 if __name__ == "__main__":
-    test_bvh()
+    process_motion()
+    #process_audio()
