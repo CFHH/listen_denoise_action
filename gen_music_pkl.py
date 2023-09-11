@@ -19,6 +19,76 @@ from pymo.preprocessing import MocapParameterizer, RootTransformer
 import tqdm
 import glob
 import pandas as pd
+import madmom
+from madmom.features import RNNDownBeatProcessor, DBNDownBeatTrackingProcessor
+from functools import partial
+
+
+class PreProcessor(madmom.processors.SequentialProcessor):
+    """
+    RNNDownBeatProcessor 的输入是文件名，不通过librosa，这里改动一下
+    RNNDownBeatProcessor::__init__()中有pre_processor, nn, act，共3部分
+    这里是pre_processor，直接取RNNDownBeatProcessor::__init__()里的pre_processor
+    """
+    origin = RNNDownBeatProcessor()
+    def __init__(self, **kwargs):
+        super(PreProcessor, self).__init__([self.origin.processors[0]])
+
+class NNProcessor(madmom.processors.SequentialProcessor):
+    """
+    抄的RNNDownBeatProcessor::__init__()里的nn
+    """
+    def __init__(self, **kwargs):
+        nn = madmom.ml.nn.NeuralNetworkEnsemble.load(madmom.models.DOWNBEATS_BLSTM, **kwargs)
+        super(NNProcessor, self).__init__([nn])
+
+class ActProcessor(madmom.processors.SequentialProcessor):
+    """
+    抄的RNNDownBeatProcessor::__init__()里的act
+    """
+    def __init__(self, **kwargs):
+        act = partial(np.delete, obj=0, axis=1)
+        super(ActProcessor, self).__init__([act])
+
+
+def get_beat_activation(audio_file_name):
+    HOP_LENGTH = 441
+    MADMOM_FPS = 30
+    MADMOM_SR = HOP_LENGTH * MADMOM_FPS
+
+    data, _ = librosa.load(audio_file_name, sr=MADMOM_SR)
+    duration = librosa.get_duration(y=data, sr=MADMOM_SR)  # y.shape[0] / MADMOM_SR
+    frames = int(duration * MADMOM_FPS + 1)
+
+    pre_proc = PreProcessor()
+    feat = pre_proc(data)  # (帧数, 314)
+    nn_prox = NNProcessor()
+    act_proc = ActProcessor()
+    beat_activation = act_proc(nn_prox(feat))  # (帧数, 2)
+
+    track_proc = DBNDownBeatTrackingProcessor(beats_per_bar=4, min_bpm=80, max_bpm=215,
+                                              num_tempi=60, transition_lambda=100,
+                                              observation_lambda=16, threshold=0.05,
+                                              correct=True, fps=MADMOM_FPS)
+    track_res = track_proc(beat_activation)  # (帧数, 2)
+    beats = track_res[:, 0] # track_res第0列是用时间表示的beat（单位是秒），注意不是帧
+    beats_index = np.round(beats / (1 / MADMOM_FPS))
+    beats_index = beats_index.astype(int)
+
+    return beat_activation, beats_index
+
+def get_spectral_flux(audio_file_name):
+    HOP_LENGTH = 441
+    MADMOM_FPS = 30
+    MADMOM_SR = HOP_LENGTH * MADMOM_FPS
+    sodf = madmom.features.onsets.SpectralOnsetProcessor(sample_rate=MADMOM_SR)
+    spectral_flux = sodf(audio_file_name)
+    return spectral_flux
+
+def get_chroma(audio_file_name):
+    dcp = madmom.audio.chroma.DeepChromaProcessor()
+    chroma = dcp(audio_file_name)
+    return chroma
 
 
 def process_audio(audio_file_name, save_path):
@@ -32,11 +102,17 @@ def process_audio(audio_file_name, save_path):
     mfcc:          20个，对应librosa的mfcc
     chroma:         6个，对应librosa的chroma_cens
     spectralflux:   1个，频谱流量，对应librosa的onset_strength
-    Beatactivation: 1个，？
-    Beat:           1个，是拍还是小节
+    Beatactivation: 1个，中间数据
+    Beat:           1个，是拍还是小节？经过测试，只能是拍
     """
     audio_name = os.path.basename(audio_file_name)
     audio_name = audio_name.split('.')[0]
+
+    # 跳过已经有的
+    save_name_1 = os.path.join(save_path, audio_name + '_00.audio29_30fps.pkl')
+    save_name_2 = os.path.join(save_path, audio_name + '_00_mirrored.audio29_30fps.pkl')
+    if os.path.isfile(save_name_1) and os.path.isfile(save_name_2):
+        return
 
     # 原数据集文件，目标是为了找个起始帧，好与动作数据集对齐
     raw_pkl_file = './data/motorica_dance/%s_00.audio29_30fps.pkl' % audio_name
@@ -48,7 +124,10 @@ def process_audio(audio_file_name, save_path):
     raw_beats_index = raw_beats_index[0]
     raw_first_beat = raw_beats_index[0]
 
-    # librosa处理
+    # madmon处理
+    #chroma = get_chroma(audio_file_name)
+
+    # 用librosa/madmon处理，获得mfcc、chroma、spectral_flux、beat_activation、beat_onehot
     FPS = 30
     HOP_LENGTH = 512
     SR = FPS * HOP_LENGTH
@@ -56,29 +135,36 @@ def process_audio(audio_file_name, save_path):
     envelope = librosa.onset.onset_strength(y=data, sr=SR)
     mfcc = librosa.feature.mfcc(y=data, sr=SR, n_mfcc=20).T
     chroma = librosa.feature.chroma_cens(y=data, sr=SR, hop_length=HOP_LENGTH, n_chroma=6).T
-    tempo, beat_idxs = librosa.beat.beat_track(onset_envelope=envelope, sr=SR, hop_length=HOP_LENGTH,
-                                               start_bpm=120.0, tightness=100)
+    #tempo, beat_idxs = librosa.beat.beat_track(onset_envelope=envelope, sr=SR, hop_length=HOP_LENGTH, start_bpm=120.0, tightness=100)
+
+    spectral_flux = get_spectral_flux(audio_file_name)
+    beat_activation, beat_idxs = get_beat_activation(audio_file_name)
+    beat_activation = beat_activation[:,0] # (frames,2)取首列
+
     beat_onehot = np.zeros_like(envelope, dtype=np.float32)
     beat_onehot[beat_idxs] = 1.0
 
     # 与原数据集对齐
-    frames = envelope.shape[0]  # 帧数
+    frames = min(mfcc.shape[0], chroma.shape[0], spectral_flux.shape[0], beat_activation.shape[0], beat_onehot.shape[0])
     first_beat = beat_idxs[0]
     start_index = first_beat - raw_first_beat
+    assert start_index >= 0, f"{audio_name}, raw_first_beat={raw_first_beat}, my_first_beat={first_beat}"
     end_index = start_index + raw_frames
-    assert(frames >= end_index), audio_name
+    assert(frames >= end_index), f"{audio_name}, raw_frames={raw_frames}, my_frames={frames}-{start_index}"
     if frames < end_index:
         end_index = frames
+
     mfcc = mfcc[start_index:end_index,...]
     chroma = chroma[start_index:end_index,...]
-    envelope = envelope[start_index:end_index, ...]
+    spectral_flux = spectral_flux[start_index:end_index, ...]
+    beat_activation = beat_activation[start_index:end_index, ...]
     beat_onehot = beat_onehot[start_index:end_index, ...]
     assert(beat_onehot[raw_first_beat] == 1)
 
     # 组织数据
-    final_frames = envelope.shape[0]
+    final_frames = mfcc.shape[0]
     channels = audio_feature = np.concatenate([
-        mfcc, chroma, envelope[:, None], envelope[:, None], beat_onehot[:, None]
+        mfcc, chroma, spectral_flux[:, None], beat_activation[:, None], beat_onehot[:, None]
     ], axis=-1)  # 合并后的numpy数组，shape=(frame, 29)
     time_list = [i/FPS for i in range(final_frames)]  # 以秒计算的各帧时间，shape=(frame,)
     time_index = pd.to_timedelta(time_list, unit='s')  # 转成panda的数据
@@ -86,19 +172,17 @@ def process_audio(audio_file_name, save_path):
     panda_data = pd.DataFrame(data=channels, index=time_index, columns=column_names)
 
     # 保存
-    save_name_1 = os.path.join(save_path, audio_name + '_00.audio29_30fps.pkl')
-    save_name_2 = os.path.join(save_path, audio_name + '_00_mirrored.audio29_30fps.pkl')
     with open(save_name_1, 'wb') as pkl_f1:
         pkl.dump(panda_data, pkl_f1)
     with open(save_name_2, 'wb') as pkl_f2:
         pkl.dump(panda_data, pkl_f2)
 
-    """
+    # 测试
     if False:
         with open(save_name_1, 'rb') as ff:
             reload_panda_data = pkl.load(ff).astype('float32')
         diff = reload_panda_data - panda_data
-    """
+
     return
 
 
@@ -109,4 +193,6 @@ if __name__ == "__main__":
     for file_name in tqdm.tqdm(music_files):
         print("Process %s" % file_name)
         process_audio(file_name, save_path)
-        break
+        #break
+
+    print("DONE !")
