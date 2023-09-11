@@ -168,7 +168,7 @@ def process_audio(audio_file_name, save_path):
                 start_index = first_beat - raw_first_beat_copy
 
         max_start_index = frames_diff  # start_index不该超过这个值
-        while start_index > start_index:
+        while start_index > max_start_index:
             start_index -= frames_per_beat
         if start_index < 0:
             if start_index > -3:
