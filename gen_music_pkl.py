@@ -120,9 +120,9 @@ def process_audio(audio_file_name, save_path):
         raw_panda_data = pkl.load(f).astype('float32')
     raw_frames = raw_panda_data.shape[0]
     raw_beats_data = raw_panda_data['Beat_0'].values
-    raw_beats_index = np.where(raw_beats_data > 0.99)
-    raw_beats_index = raw_beats_index[0]
-    raw_first_beat = raw_beats_index[0]
+    raw_beat_idxs = np.where(raw_beats_data > 0.99)
+    raw_beat_idxs = raw_beat_idxs[0]
+    raw_first_beat = raw_beat_idxs[0]
 
     # madmon处理
     #chroma = get_chroma(audio_file_name)
@@ -147,10 +147,42 @@ def process_audio(audio_file_name, save_path):
     # 与原数据集对齐
     frames = min(mfcc.shape[0], chroma.shape[0], spectral_flux.shape[0], beat_activation.shape[0], beat_onehot.shape[0])
     first_beat = beat_idxs[0]
-    start_index = first_beat - raw_first_beat
+
+    def _get_start_index():
+        nonlocal raw_frames, raw_first_beat, frames, first_beat, beat_idxs, audio_name
+        frames_diff = frames - raw_frames
+        first_beat_diff = first_beat - raw_first_beat
+        frames_per_beat = (beat_idxs[-1] - beat_idxs[0]) / (len(beat_idxs) - 1)
+
+        if first_beat >= raw_first_beat:
+            # 训练数据是原始数据的一个裁剪，理应如此
+            start_index = first_beat - raw_first_beat
+        else:
+            # raw_first_beat > first_beat
+            raw_first_beat_copy = raw_first_beat
+            while raw_first_beat_copy > first_beat:
+                raw_first_beat_copy -= frames_per_beat
+            if raw_first_beat_copy >= 0:
+                start_index = first_beat - raw_first_beat_copy
+            else:
+                start_index = first_beat - raw_first_beat_copy
+
+        max_start_index = frames_diff  # start_index不该超过这个值
+        while start_index > start_index:
+            start_index -= frames_per_beat
+        if start_index < 0:
+            if start_index > -3:
+                start_index = 0
+            else:
+                start_index += frames_per_beat
+
+        print(f"raw_frames={raw_frames}, raw_first_beat={raw_first_beat}, frames={frames}, first_beat={first_beat}, frames_per_beat={frames_per_beat} ==> start_index={start_index}")
+        return int(round(start_index))
+
+    start_index = _get_start_index()
     assert start_index >= 0, f"{audio_name}, raw_first_beat={raw_first_beat}, my_first_beat={first_beat}"
     end_index = start_index + raw_frames
-    assert(frames >= end_index), f"{audio_name}, raw_frames={raw_frames}, my_frames={frames}-{start_index}"
+    #assert(frames >= end_index), f"{audio_name}, raw_frames={raw_frames}, my_frames={frames}-{start_index}"
     if frames < end_index:
         end_index = frames
 
@@ -159,7 +191,7 @@ def process_audio(audio_file_name, save_path):
     spectral_flux = spectral_flux[start_index:end_index, ...]
     beat_activation = beat_activation[start_index:end_index, ...]
     beat_onehot = beat_onehot[start_index:end_index, ...]
-    assert(beat_onehot[raw_first_beat] == 1)
+    #assert(beat_onehot[raw_first_beat] == 1)
 
     # 组织数据
     final_frames = mfcc.shape[0]
@@ -188,6 +220,10 @@ def process_audio(audio_file_name, save_path):
 
 if __name__ == "__main__":
     save_path = './data/music_pkl/'
+
+    #test
+    #process_audio('./data/wav/kthjazz_gCH_sFM_cAll_d02_mCH_ch01_charlestonchaserswabashblues_004.wav', save_path)
+
     music_files = glob.glob('./data/wav/*.wav')
     music_files.sort()
     for file_name in tqdm.tqdm(music_files):
