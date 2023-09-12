@@ -1,4 +1,5 @@
 import os
+import shutil
 import random
 import argparse
 import json
@@ -91,7 +92,7 @@ def get_chroma(audio_file_name):
     return chroma
 
 
-def process_audio(audio_file_name, save_path):
+def process_audio(audio_file_name, save_path, all_files):
     """
     一个wav
     kthjazz_gCH_sFM_cAll_d02_mCH_ch01_beatlestreetwashboardbandfortyandtight_003.wav
@@ -109,6 +110,10 @@ def process_audio(audio_file_name, save_path):
     audio_name = audio_name.split('.')[0]
 
     # 跳过已经有的
+    temp_name = audio_name +'_00'
+    all_files.append(temp_name)
+    temp_name = audio_name + '_00_mirrored'
+    all_files.append(temp_name)
     save_name_1 = os.path.join(save_path, audio_name + '_00.audio29_30fps.pkl')
     save_name_2 = os.path.join(save_path, audio_name + '_00_mirrored.audio29_30fps.pkl')
     if os.path.isfile(save_name_1) and os.path.isfile(save_name_2):
@@ -219,16 +224,62 @@ def process_audio(audio_file_name, save_path):
 
 
 if __name__ == "__main__":
-    save_path = './data/music_pkl/'
+    save_path = './data/my_train_data/'
 
     #test
     #process_audio('./data/wav/kthjazz_gCH_sFM_cAll_d02_mCH_ch01_charlestonchaserswabashblues_004.wav', save_path)
 
+    all_files = []
+    train_files = []
+    test_files = []
     music_files = glob.glob('./data/wav/*.wav')
     music_files.sort()
     for file_name in tqdm.tqdm(music_files):
         print("Process %s" % file_name)
-        process_audio(file_name, save_path)
+        process_audio(file_name, save_path, all_files)
         #break
+
+    raw_train_files = np.loadtxt('./data/motorica_dance/dance_train_files.txt', dtype=str).tolist()
+    raw_test_files = np.loadtxt('./data/motorica_dance/dance_test_files.txt', dtype=str).tolist()
+    for raw_file in raw_train_files:
+        if raw_file in all_files:
+            train_files.append(raw_file)
+    for raw_file in raw_test_files:
+        if raw_file in all_files:
+            test_files.append(raw_file)
+
+    save_train_name = os.path.join(save_path, 'dance_train_files.txt')
+    with open(save_train_name, 'w') as f:
+        for line in train_files:
+            f.write(line + '\n')
+    shutil.copy(save_train_name, os.path.join(save_path, 'dance_train_files_kth.txt'))
+
+    save_test_name = os.path.join(save_path, 'dance_test_files.txt')
+    with open(save_test_name, 'w') as f:
+        for line in test_files:
+            f.write(line + '\n')
+    shutil.copy(save_test_name, os.path.join(save_path, 'dance_test_files_kth.txt'))
+
+    raw_motion_files = glob.glob('./data/motorica_dance/*.expmap_30fps.pkl')
+    for motion_file_name in raw_motion_files:
+        base_name = os.path.basename(motion_file_name)
+        audio_name = base_name.split('.')[0]
+        if audio_name in all_files:
+            dest_file_name = os.path.join(save_path, base_name)
+            shutil.copy(motion_file_name, dest_file_name)
+
+    other_files = ['data_pipe.expmap_30fps.sav',
+                   'audio18_features.txt',
+                   'audio29_features.txt',
+                   'ch0_spec_beatact_features.txt',
+                   'dance_styles.txt',
+                   'dance_styles_kth.txt',
+                   'gen_files.txt',
+                   'pose_features.expmap.txt'
+                   ]
+    for other_file in other_files:
+        src_file_name = os.path.join('./data/motorica_dance', other_file)
+        dest_file_name = os.path.join(save_path, other_file)
+        shutil.copy(src_file_name, dest_file_name)
 
     print("DONE !")
