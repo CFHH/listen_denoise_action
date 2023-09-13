@@ -31,13 +31,20 @@ def exec_cmd(cmd):
 
 
 if __name__ == "__main__":
-    checkpoint = '../pretrained_models/dance_LDA.ckpt'
+    use_raw_data = False
+    if use_raw_data:
+        checkpoint = '../pretrained_models/dance_LDA.ckpt'
+        data_dir = '../data/motorica_dance'
+        wav_dir = '../data/motorica_dance/wav'
+        basenames = np.loadtxt('../data/motorica_dance/gen_files.txt', dtype=str).tolist()
+    else:
+        checkpoint = '../pretrained_models/my_results/checkpoints/epoch=9-step=403080.ckpt'
+        data_dir = '../data/my_wav'
+        wav_dir = '../data/my_wav'
+        basenames = np.loadtxt('../data/my_wav/my_gen_files.txt', dtype=str).tolist()
+
     dest_dir = '../results/generated/dance_LDA'
     os.makedirs(dest_dir, exist_ok=True)
-
-    data_dir = '../data/motorica_dance'
-    wav_dir = '../data/motorica_dance/wav'
-    basenames = np.loadtxt('../data/motorica_dance/gen_files.txt', dtype=str).tolist()
 
     start = 0
     seed = 150
@@ -52,6 +59,7 @@ if __name__ == "__main__":
     render_video = True
 
     for wavfile in basenames:
+        print( f"process {wavfile} ......")
         start = 0
         style = wavfile.split('_')[1]
         for postfix in range(12):
