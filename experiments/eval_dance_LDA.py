@@ -2,7 +2,32 @@ import os
 import numpy as np
 from pytorch_lightning import seed_everything
 from models.LightningModel import LitLDA
+import scipy.io.wavfile as wav
 from synthesize import do_synthesize, get_cond
+
+
+def cutwav(wav_dir, wavfile, starttime, endtime, suffix, dest_dir):
+    filename = os.path.join(wav_dir, wavfile[0:-3] + '.wav')
+    print(f'Cutting AUDIO {filename} from: {starttime} to {endtime}')
+    basename = os.path.splitext(os.path.basename(filename))[0]
+    out_wav_file = os.path.join(dest_dir, basename + "_" + suffix + '.wav')
+    fs, X = wav.read(filename)
+    start_idx = int(np.round(starttime * fs))
+    end_idx = int(np.round(endtime * fs))
+    if end_idx < X.shape[0]:
+        wav.write(out_wav_file, fs, X[start_idx:end_idx])
+    else:
+        print("EOF REACHED")
+    return out_wav_file
+
+
+def exec_cmd(cmd):
+    # python 执行命令获取输出
+    print(cmd)
+    r = os.popen(cmd)
+    text = r.read()
+    r.close()
+    return text
 
 
 if __name__ == "__main__":
@@ -66,5 +91,17 @@ if __name__ == "__main__":
                 l_conds.append(l_cond)
                 g_conds.append(style)
 
-            do_synthesize(models, l_conds, g_conds, out_file_name, postfix, trim, dest_dir, guidance_factors, gpu,
-                          render_video, outfile)
+            do_synthesize(models, l_conds, g_conds, out_file_name, postfix, trim, dest_dir, guidance_factors, gpu, render_video, outfile)
+
+            temp_wav_file = cutwav(wav_dir, wavfile, (start + trim) / fps, (start + length - trim) / fps, postfix, dest_dir)
+            if render_video:
+                temp_video_file = os.path.join(dest_dir, output_file + '.mp4')
+                final_video_file = os.path.join(dest_dir, output_file + '_audio.mp4')
+                cmd_line = f'ffmpeg -y -i {temp_video_file} -i {temp_wav_file} {final_video_file}'
+                exec_cmd(cmd_line)
+                # os.remove(temp_video_file)  # 先不删除了
+
+            # 下一个postfix
+            if not fixed_seed:
+                seed += 1
+            start = start + length
