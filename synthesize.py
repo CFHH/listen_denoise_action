@@ -95,8 +95,9 @@ def get_style_vector(styles_file, style_token, nbatch, nframes):
     styles_onehot = styles2onehot(all_styles, style_token)
     styles = styles_onehot.repeat(nbatch, nframes,1)    
 
-def get_cond(model, data_dir, input_file, style_token, length):
+def get_cond(model, data_dir, input_file, style_token, startframe, endframe):
     # Load input features
+    # endframe是length的意思，就是取startframe:startframe+endframe这部分
     with open(join(data_dir, input_file), 'rb') as f:
         ctrl = pkl.load(f)
     ctrl = ctrl[startframe:]
