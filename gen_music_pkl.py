@@ -78,7 +78,7 @@ def get_chroma(audio_file_name):
     return chroma
 
 
-def process_audio(audio_file_name, save_path, all_files):
+def process_audio(audio_file_name, save_path, all_files, align_to_raw_data=True):
     """
     一个wav
     kthjazz_gCH_sFM_cAll_d02_mCH_ch01_beatlestreetwashboardbandfortyandtight_003.wav
@@ -106,14 +106,15 @@ def process_audio(audio_file_name, save_path, all_files):
         return
 
     # 原数据集文件，目标是为了找个起始帧，好与动作数据集对齐
-    raw_pkl_file = './data/motorica_dance/%s_00.audio29_30fps.pkl' % audio_name
-    with open(raw_pkl_file, 'rb') as f:
-        raw_panda_data = pkl.load(f).astype('float32')
-    raw_frames = raw_panda_data.shape[0]
-    raw_beats_data = raw_panda_data['Beat_0'].values
-    raw_beat_idxs = np.where(raw_beats_data > 0.99)
-    raw_beat_idxs = raw_beat_idxs[0]
-    raw_first_beat = raw_beat_idxs[0]
+    if align_to_raw_data:
+        raw_pkl_file = './data/motorica_dance/%s_00.audio29_30fps.pkl' % audio_name
+        with open(raw_pkl_file, 'rb') as f:
+            raw_panda_data = pkl.load(f).astype('float32')
+        raw_frames = raw_panda_data.shape[0]
+        raw_beats_data = raw_panda_data['Beat_0'].values
+        raw_beat_idxs = np.where(raw_beats_data > 0.99)
+        raw_beat_idxs = raw_beat_idxs[0]
+        raw_first_beat = raw_beat_idxs[0]
 
     # madmon处理
     #chroma = get_chroma(audio_file_name)
@@ -170,10 +171,15 @@ def process_audio(audio_file_name, save_path, all_files):
         print(f"raw_frames={raw_frames}, raw_first_beat={raw_first_beat}, frames={frames}, first_beat={first_beat}, frames_per_beat={frames_per_beat} ==> start_index={start_index}")
         return int(round(start_index))
 
-    start_index = _get_start_index()
-    assert start_index >= 0, f"{audio_name}, raw_first_beat={raw_first_beat}, my_first_beat={first_beat}"
-    end_index = start_index + raw_frames
-    #assert(frames >= end_index), f"{audio_name}, raw_frames={raw_frames}, my_frames={frames}-{start_index}"
+    if align_to_raw_data:
+        start_index = _get_start_index()
+        assert start_index >= 0, f"{audio_name}, raw_first_beat={raw_first_beat}, my_first_beat={first_beat}"
+        end_index = start_index + raw_frames
+        #assert(frames >= end_index), f"{audio_name}, raw_frames={raw_frames}, my_frames={frames}-{start_index}"
+    else:
+        start_index = 0
+        end_index = frames
+
     if frames < end_index:
         end_index = frames
 
@@ -209,7 +215,7 @@ def process_audio(audio_file_name, save_path, all_files):
     return
 
 
-if __name__ == "__main__":
+def process_raw_dataset():
     save_path = './data/my_train_data/'
 
     #test
@@ -269,3 +275,18 @@ if __name__ == "__main__":
         shutil.copy(src_file_name, dest_file_name)
 
     print("DONE !")
+
+
+def process_new_dataset():
+    save_path = './data/my_wav/'
+    all_files = []
+    music_files = glob.glob('./data/my_wav/*.wav')
+    music_files.sort()
+    for file_name in tqdm.tqdm(music_files):
+        print("Process %s" % file_name)
+        process_audio(file_name, save_path, all_files, align_to_raw_data=False)
+
+
+if __name__ == "__main__":
+    #process_raw_dataset()
+    process_new_dataset()
