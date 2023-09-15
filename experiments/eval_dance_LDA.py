@@ -10,7 +10,7 @@ def cutwav(wav_dir, wavfile, starttime, endtime, suffix, dest_dir):
     filename = os.path.join(wav_dir, wavfile[0:-3] + '.wav')
     print(f'Cutting AUDIO {filename} from: {starttime} to {endtime}')
     basename = os.path.splitext(os.path.basename(filename))[0]
-    out_wav_file = os.path.join(dest_dir, basename + "_" + suffix + '.wav')
+    out_wav_file = os.path.join(dest_dir, f'{basename}_{suffix}.wav')
     fs, X = wav.read(filename)
     start_idx = int(np.round(starttime * fs))
     end_idx = int(np.round(endtime * fs))
@@ -49,8 +49,8 @@ if __name__ == "__main__":
     start = 0
     seed = 150
     fps = 30
-    trim_s = 0
-    length_s = 10  # 生成多少秒
+    trim_s = 0  # 这个就不能不是零
+    length_s = 10  # 每一段生成生成多少秒
     trim = trim_s * fps
     length = length_s * fps
     fixed_seed = False
@@ -61,15 +61,15 @@ if __name__ == "__main__":
     for wavfile in basenames:
         print( f"process {wavfile} ......")
         start = 0
-        style = wavfile.split('_')[1]
-        for postfix in range(12):
+        style_token = wavfile.split('_')[1]
+        for postfix in range(12):  # 生成几段，每段长length_s秒
             input_file = f'{wavfile}.audio29_{fps}fps.pkl'
-            output_file = f'{wavfile[0:-3]}_{postfix}_{style}'
+            output_file = f'{wavfile[0:-3]}_{postfix}_{style_token}'
 
             checkpoints = [checkpoint]
             data_dirs = [data_dir]
             input_files = [input_file]
-            style_tokens = [style]
+            style_tokens = [style_token]
             startframe = start
             endframe = length
             guidance_factors = []
