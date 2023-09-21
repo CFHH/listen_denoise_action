@@ -1072,16 +1072,16 @@ class RootTransformer(BaseEstimator, TransformerMixin):
                 
                 """ Get Trajectory and smooth it"""                
                 trajectory_filterwidth = self.position_smoothing
-                reference = positions.copy()*np.array([1,0,1])
-                if trajectory_filterwidth>0:
+                reference = positions.copy()*np.array([1,0,1])  # 就是xz
+                if trajectory_filterwidth>0: # 配置等于0
                     reference = filters.gaussian_filter1d(reference, trajectory_filterwidth, axis=0, mode='nearest')
                 
                 """ Get Root Velocity """
-                velocity = np.diff(reference, axis=0)                
+                velocity = np.diff(reference, axis=0)  # np.diff()的反函数是np.cumsum()
                 velocity = np.vstack((velocity[0,:], velocity))
 
                 """ Remove Root Translation """
-                positions = positions-reference
+                positions = positions-reference  # 就是y
 
                 """ Get Forward Direction along the x-z plane, assuming character is facig z-forward """
                 #forward = [Rotation(f, 'euler', from_deg=True, order=rot_order).rotmat[:,2] for f in rotations] # get the z-axis of the rotation matrix, assuming character is facig z-forward
@@ -1089,20 +1089,20 @@ class RootTransformer(BaseEstimator, TransformerMixin):
                 quats = Quaternions.from_euler(rotations, order=rot_order.lower(), world=False)
                 #forward = quats*np.array([[0,0,1]])
                 #forward[:,1] = 0
-                side_dirs = quats*self.hips_side_axis
-                forward = np.cross(np.array([[0,1,0]]), side_dirs)
+                side_dirs = quats*self.hips_side_axis  # 旋转hips_side_axis，初始是[-1,0,0]是人的右边
+                forward = np.cross(np.array([[0,1,0]]), side_dirs)  # 右手系，y叉乘-x是z，就是人的朝向
 
                 """ Smooth Forward Direction """                
                 direction_filterwidth = self.rotation_smoothing
-                if direction_filterwidth>0:
+                if direction_filterwidth>0:  # 配置等于0
                     forward = filters.gaussian_filter1d(forward, direction_filterwidth, axis=0, mode='nearest')    
 
-                forward = forward / np.sqrt((forward**2).sum(axis=-1))[...,np.newaxis]
+                forward = forward / np.sqrt((forward**2).sum(axis=-1))[...,np.newaxis]  # 单位向量
 
                 """ Remove Y Rotation """
                 target = np.array([[0,0,1]]).repeat(len(forward), axis=0)
                 rotation = Quaternions.between(target, forward)[:,np.newaxis]    
-                positions = (-rotation[:,0]) * positions
+                positions = (-rotation[:,0]) * positions  # 还是y，实测positions[:,1] - new_track.values[yp_col].values == 0
                 #new_rotations = (-rotation[:,0]) * quats
                 new_rotations = (-self.root_rotation_offset) * (-rotation[:,0]) * quats
 
@@ -1359,8 +1359,8 @@ class RootTransformer(BaseEstimator, TransformerMixin):
                 dzp_col = 'reference_dZposition'
                 dyr_col = 'reference_dYrotation'
 
-                positions = np.transpose(np.array([track.values[xp_col], track.values[yp_col], track.values[zp_col]]))
-                rotations = np.pi/180.0*np.transpose(np.array([track.values[r1_col], track.values[r2_col], track.values[r3_col]]))
+                positions = np.transpose(np.array([track.values[xp_col], track.values[yp_col], track.values[zp_col]]))  # xz是0
+                rotations = np.pi/180.0*np.transpose(np.array([track.values[r1_col], track.values[r2_col], track.values[r3_col]])) # y是0
                 quats = Quaternions.from_euler(rotations, order=rot_order.lower(), world=False)
 
                 new_df = track.values.copy()

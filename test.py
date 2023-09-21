@@ -62,6 +62,9 @@ def process_audio():
 
 
 def process_motion():
+    # 一些文件
+
+
     # 加载pkl文件
     pkl_file = './data/motorica_dance/kthjazz_gCH_sFM_cAll_d02_mCH_ch01_beatlestreetwashboardbandfortyandtight_003_00.expmap_30fps.pkl'
     with open(pkl_file, 'rb') as f2:
@@ -76,6 +79,8 @@ def process_motion():
     # 这算成30fps
     bvh_data.values = bvh_data.values[::4]
     bvh_data.framerate = bvh_data.framerate * 4
+    bvh_data.values['Hips_Xposition'] -= bvh_data.values['Hips_Xposition'][0]
+    bvh_data.values['Hips_Zposition'] -= bvh_data.values['Hips_Zposition'][0]
     # 保存一下
     write_bvh(bvh_data, './raw.bvh')
 
@@ -88,14 +93,34 @@ def process_motion():
     expmap_datas = parameterizer.fit_transform(bvh_datas)
     expmap_data = expmap_datas[0]
     my_pkl_data = expmap_data.values  # 没有['reference_dXposition']
+    # 测试
+    test_bvh_datas_1 = parameterizer.inverse_transform(expmap_datas)
+    diff_1 = test_bvh_datas_1[0].values - bvh_datas[0].values  # 是零
 
     # 取reference参数
-    root_transformer = RootTransformer('pos_xyz_rot_deltas') # pos_xyz_rot_deltas
+    root_transformer = RootTransformer('pos_rot_deltas', separate_root=False) # pos_xyz_rot_deltas, pos_rot_deltas
     trans_datas = root_transformer.fit_transform(bvh_datas)
     trans_data = trans_datas[0]
     my_pkl_data['reference_dXposition'] = trans_data.values['reference_dXposition']
     my_pkl_data['reference_dZposition'] = trans_data.values['reference_dZposition']
     my_pkl_data['reference_dYrotation'] = trans_data.values['reference_dYrotation']
+    # 测试
+    test_bvh_datas = root_transformer.inverse_transform(trans_datas)
+    if root_transformer.separate_root:
+        test_Hips_Xposition = bvh_data.values['Hips_Xposition'] - bvh_data.values['Hips_Xposition'][0]
+        test_Hips_Zposition = bvh_data.values['Hips_Zposition'] - bvh_data.values['Hips_Zposition'][0]
+        test_Hips_Yrotation = bvh_data.values['Hips_Yrotation'] - bvh_data.values['Hips_Yrotation'][0]
+        test1 = test_bvh_datas[0].values['reference_Xposition'] - test_Hips_Xposition
+        test2 = test_bvh_datas[0].values['reference_Zposition'] - test_Hips_Zposition
+        test3 = test_bvh_datas[0].values['reference_Yrotation'] - test_Hips_Yrotation
+        max1 = np.max(np.abs(test1.values))
+        max2 = np.max(np.abs(test2.values))
+        max3 = np.max(np.abs(test3.values))
+    else:
+        test_bvh_data = test_bvh_datas[0]
+        test_bvh_data.values['Hips_Xposition'] -= test_bvh_data.values['Hips_Xposition'][0]
+        test_bvh_data.values['Hips_Zposition'] -= test_bvh_data.values['Hips_Zposition'][0]
+        bvh_diff = test_bvh_data.values - bvh_data.values
 
     # 实际使用的骨骼
     motions_cols = np.loadtxt('./data/motorica_dance/pose_features.expmap.txt', dtype=str).tolist()
