@@ -28,9 +28,9 @@ def process_motion(bvh_filename, motions_cols, save_path, all_files):
     motion_name = motion_name.split('.')[0]
 
     # 跳过已经有的
-    temp_name = motion_name + '_00'
+    temp_name = motion_name + '_gSP_00'
     all_files.append(temp_name)
-    save_name_1 = os.path.join(save_path, motion_name + '_00.expmap_30fps.pkl')
+    save_name_1 = os.path.join(save_path, temp_name + '.expmap_30fps.pkl')
     if os.path.isfile(save_name_1):
         return
 
@@ -61,7 +61,7 @@ def process_motion(bvh_filename, motions_cols, save_path, all_files):
     with open(save_name_1, 'wb') as pkl_f1:
         pkl.dump(panda_data, pkl_f1)
 
-    dotest = True
+    dotest = False
     if dotest:
         # 加载pkl
         with open(save_name_1, 'rb') as ff:
@@ -80,21 +80,29 @@ def process_motion(bvh_filename, motions_cols, save_path, all_files):
     return
 
 
-
 def process_new_dataset():
     save_path = './data/my_gesture_data/'
 
     bone_feature_filename = './data/my_gesture_data/pose_features.expmap.txt'
     motions_cols = np.loadtxt(bone_feature_filename, dtype=str).tolist()
 
-    # 处理test
-    all_files = []
-    motion_files = glob.glob('./data/my_gesture_data/GENEA/test/motion/*.bvh')
-    motion_files.sort()
-    for bvh_filename in tqdm.tqdm(motion_files):
-        print("Process %s" % bvh_filename)
-        process_motion(bvh_filename, motions_cols, save_path, all_files)
-    # 处理train
+    sub_dataset_names = ['test', 'train']
+    for sub_dataset_name in sub_dataset_names:
+        all_files = []
+        motion_files = glob.glob(f'./data/my_gesture_data/GENEA/{sub_dataset_name}/motion/*.bvh')
+        motion_files.sort()
+        for bvh_filename in tqdm.tqdm(motion_files):
+            print("Process %s" % bvh_filename)
+            process_motion(bvh_filename, motions_cols, save_path, all_files)
+            break
+
+        save_list_name = os.path.join(save_path, f'dance_{sub_dataset_name}_files.txt')
+        with open(save_list_name, 'w') as f:
+            for line in all_files:
+                f.write(line + '\n')
+        shutil.copy(save_list_name, os.path.join(save_path, f'dance_{sub_dataset_name}_files_kth.txt'))
+
+    return
 
 
 if __name__ == "__main__":
