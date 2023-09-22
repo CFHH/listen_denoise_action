@@ -8,7 +8,7 @@ Data:
   input_modality: audio29_30fps
   output_modality: expmap_30fps
   input_feats_file: ch0_spec_beatact_features.txt
-  datapipe_filename: data_pipe.expmap_30fps.sav
+  datapipe_filename: data_pipe.expmap_30fps.sav # data_pipe.expmap_30fps.sav inverse_transform_gesture
   timestretch_prob: 0.2
   timestretch_factor: 0.1
 Diffusion:

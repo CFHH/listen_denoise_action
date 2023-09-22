@@ -13,7 +13,14 @@ from pymo.data import Joint, MocapData
 from pymo.preprocessing import *
 from pymo.viz_tools import *
 from scipy import interpolate
+from pymo.parsers import BVHParser
 
+
+parameterizer = None
+mocap_data_sample = None
+train_columns = None
+ignored_columns = None
+full_columns = None
 
 class LoggingMixin:
 
@@ -42,15 +49,76 @@ class LoggingMixin:
                     
         
     def feats_to_bvh(self, pred_clips):
+        if self.hparams.Data["datapipe_filename"] == 'inverse_transform_gesture':
+            return self.gesture_feats_to_bvh(pred_clips)
         #import pdb;pdb.set_trace()
         data_pipeline = jl.load(Path(self.hparams.dataset_root) / self.hparams.Data["datapipe_filename"])
-        n_feats = data_pipeline["cnt"].n_features        
+        n_feats = data_pipeline["cnt"].n_features
         data_pipeline["root"].separate_root=False
-        
+
         print('inverse_transform...')
         bvh_data=data_pipeline.inverse_transform(pred_clips[:,:,:n_feats])
         return bvh_data
-        
+
+    def gesture_feats_to_bvh(self, pred_clips):
+        global parameterizer, mocap_data_sample, train_columns, ignored_columns, full_columns
+        if parameterizer is None:
+            dataset_root = self.hparams.dataset_root
+            # parameterizer, mocap_data_sample
+            skeleton_bvh = os.path.join(dataset_root, 'skeleton.bvh')
+            bvh_parser = BVHParser()
+            bvh_data = bvh_parser.parse(skeleton_bvh)
+            bvh_datas = [bvh_data]
+            parameterizer = MocapParameterizer('expmap')
+            expmap_datas = parameterizer.fit_transform(bvh_datas)
+            mocap_data_sample = expmap_datas[0]
+
+            # train_columns, ignored_columns, full_columns
+            bone_feature_filename = os.path.join(dataset_root, 'pose_features.expmap.txt')
+            train_columns = np.loadtxt(bone_feature_filename, dtype=str).tolist()
+
+            ignored_joints = ['RightToeBase', 'RightForeFoot', 'LeftToeBase', 'LeftForeFoot', 'pCube4']
+            hands = ['LeftHand', 'RightHand']
+            fingers = ['Thumb', 'Index', 'Middle', 'Ring', 'Pinky']
+            indexs = [1, 2, 3]
+            for hand in hands:
+                for finger in fingers:
+                    for index in indexs:
+                        name = f'{hand}{finger}{index}'
+                        ignored_joints.append(name)
+            ignored_columns = []
+            for joint in ignored_joints:
+                ignored_columns.append(joint + '_alpha')
+                ignored_columns.append(joint + '_beta')
+                ignored_columns.append(joint + '_gamma')
+
+            full_columns = train_columns + ignored_columns
+
+        mocap_datas = []
+        for clip in pred_clips:
+            frames = clip.shape[0]
+            zeros = np.zeros((frames, len(ignored_columns)))
+            channels = np.concatenate([clip, zeros], axis=-1)
+
+            fps = 30
+            time_list = [i / fps for i in range(frames)]  # 以秒计算的各帧时间，shape=(frame,)
+            time_index = pd.to_timedelta(time_list, unit='s')  # 转成panda的数据
+            panda_data = pd.DataFrame(data=channels, index=time_index, columns=full_columns)  # 就是pkl
+
+            new_data = MocapData()
+            new_data.skeleton = copy.deepcopy(mocap_data_sample.skeleton)
+            new_data.channel_names = copy.deepcopy(mocap_data_sample.channel_names)
+            new_data.root_name = copy.deepcopy(mocap_data_sample.root_name)
+            new_data.values = panda_data
+            new_data.framerate = 1 / fps
+            # new_data.take_name = ''
+
+            mocap_datas.append(new_data)
+
+        my_bvh_datas = parameterizer.inverse_transform(mocap_datas)
+        return my_bvh_datas
+
+
     def write_bvh(self, bvh_data, log_dir="", name_prefix=""):
         writer = BVHWriter()
         nclips = len(bvh_data)
