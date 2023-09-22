@@ -7,3 +7,5 @@ dl_dataset/
 results/
 pretrained_models/*.ckpt
 pretrained_models/my_results/
+/*.bvh
+*.log
