@@ -78,8 +78,16 @@ def get_chroma(audio_file_name):
     return chroma
 
 
-def process_audio(audio_file_name, save_path, all_files, align_to_raw_data=True):
+def process_audio(audio_file_name, save_path, all_files, align_to_raw_data=False, process_mirror=True, genra=''):
     """
+    :param audio_file_name:
+    :param save_path:
+    :param all_files: 收集文件名，可以为None
+    :param align_to_raw_data: 对已经有动作pkl的文件，指定为True，生成过程会试图与动作pkl的帧对齐
+    :param process_mirror: 生成_mirrored文件
+    :param genra: 有些文件自身不带类型，通过这个参数补充，比如'_gSP'
+    :return: None
+
     一个wav
     kthjazz_gCH_sFM_cAll_d02_mCH_ch01_beatlestreetwashboardbandfortyandtight_003.wav
     生成2个完全相同的文件
@@ -96,14 +104,21 @@ def process_audio(audio_file_name, save_path, all_files, align_to_raw_data=True)
     audio_name = audio_name.split('.')[0]
 
     # 跳过已经有的
-    temp_name = audio_name +'_00'
-    all_files.append(temp_name)
-    temp_name = audio_name + '_00_mirrored'
-    all_files.append(temp_name)
-    save_name_1 = os.path.join(save_path, audio_name + '_00.audio29_30fps.pkl')
-    save_name_2 = os.path.join(save_path, audio_name + '_00_mirrored.audio29_30fps.pkl')
-    if os.path.isfile(save_name_1) and os.path.isfile(save_name_2):
-        return
+    temp_name = audio_name + genra + '_00'
+    if all_files is not None:
+        all_files.append(temp_name)
+    save_name_1 = os.path.join(save_path, temp_name + '.audio29_30fps.pkl')
+    if process_mirror:
+        temp_name = audio_name + genra + '_00_mirrored'
+        if all_files is not None:
+            all_files.append(temp_name)
+        save_name_2 = os.path.join(save_path, temp_name + '.audio29_30fps.pkl')
+    if process_mirror:
+        if os.path.isfile(save_name_1) and os.path.isfile(save_name_2):
+            return
+    else:
+        if os.path.isfile(save_name_1):
+            return
 
     # 原数据集文件，目标是为了找个起始帧，好与动作数据集对齐
     if align_to_raw_data:
@@ -203,11 +218,13 @@ def process_audio(audio_file_name, save_path, all_files, align_to_raw_data=True)
     # 保存
     with open(save_name_1, 'wb') as pkl_f1:
         pkl.dump(panda_data, pkl_f1)
-    with open(save_name_2, 'wb') as pkl_f2:
-        pkl.dump(panda_data, pkl_f2)
+    if process_mirror:
+        with open(save_name_2, 'wb') as pkl_f2:
+            pkl.dump(panda_data, pkl_f2)
 
     # 测试
-    if False:
+    do_test = False
+    if do_test:
         with open(save_name_1, 'rb') as ff:
             reload_panda_data = pkl.load(ff).astype('float32')
         diff = reload_panda_data - panda_data
@@ -219,7 +236,7 @@ def process_raw_dataset():
     save_path = './data/my_train_data/'
 
     #test
-    #process_audio('./data/wav/kthjazz_gCH_sFM_cAll_d02_mCH_ch01_charlestonchaserswabashblues_004.wav', save_path)
+    #process_audio('./data/wav/kthjazz_gCH_sFM_cAll_d02_mCH_ch01_charlestonchaserswabashblues_004.wav', save_path, align_to_raw_data=True)
 
     all_files = []
     train_files = []
@@ -228,7 +245,7 @@ def process_raw_dataset():
     music_files.sort()
     for file_name in tqdm.tqdm(music_files):
         print("Process %s" % file_name)
-        process_audio(file_name, save_path, all_files)
+        process_audio(file_name, save_path, all_files, align_to_raw_data=True)
         #break
 
     raw_train_files = np.loadtxt('./data/motorica_dance/dance_train_files.txt', dtype=str).tolist()

@@ -15,6 +15,7 @@ from pymo.parsers import BVHParser
 from pymo.writers import BVHWriter
 from pymo.preprocessing import MocapParameterizer, RootTransformer
 from utils.logging_mixin import gesture_feats_to_bvh
+from gen_music_pkl import process_audio
 
 
 def write_bvh(bvh_data, fname):
@@ -32,7 +33,7 @@ def process_motion(bvh_filename, motions_cols, save_path, all_files):
     all_files.append(temp_name)
     save_name_1 = os.path.join(save_path, temp_name + '.expmap_30fps.pkl')
     if os.path.isfile(save_name_1):
-        return
+        return motion_name
 
     # 加载bvh文件
     bvh_parser = BVHParser()
@@ -77,7 +78,8 @@ def process_motion(bvh_filename, motions_cols, save_path, all_files):
         my_bvh_data.values['Hips_Xposition'] += bvh_data.values['Hips_Xposition'][0] - my_bvh_data.values['Hips_Xposition'][0]
         my_bvh_data.values['Hips_Zposition'] += bvh_data.values['Hips_Zposition'][0] - my_bvh_data.values['Hips_Zposition'][0]
         write_bvh(my_bvh_data, f'./{motion_name}.bvh')
-    return
+
+    return motion_name
 
 
 def process_new_dataset():
@@ -93,7 +95,9 @@ def process_new_dataset():
         motion_files.sort()
         for bvh_filename in tqdm.tqdm(motion_files):
             print("Process %s" % bvh_filename)
-            process_motion(bvh_filename, motions_cols, save_path, all_files)
+            motion_name = process_motion(bvh_filename, motions_cols, save_path, all_files)
+            audio_file_name = f'./data/my_gesture_data/GENEA/{sub_dataset_name}/audio/{motion_name}.wav'
+            process_audio(audio_file_name, save_path, None, align_to_raw_data=False, process_mirror=False, genra='_gSP')
             break
 
         save_list_name = os.path.join(save_path, f'dance_{sub_dataset_name}_files.txt')
