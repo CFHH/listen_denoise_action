@@ -98,7 +98,7 @@ def process_new_dataset():
             motion_name = process_motion(bvh_filename, motions_cols, save_path, all_files)
             audio_file_name = f'./data/my_gesture_data/GENEA/{sub_dataset_name}/audio/{motion_name}.wav'
             process_audio(audio_file_name, save_path, None, align_to_raw_data=False, process_mirror=False, genra='_gSP')
-            break
+            #break
 
         save_list_name = os.path.join(save_path, f'dance_{sub_dataset_name}_files.txt')
         with open(save_list_name, 'w') as f:
