@@ -142,7 +142,7 @@ class MotionDataset(torch.utils.data.Dataset):
             # global conditioning (from file naming convention)
             if "styles_file" in data_hparams:
                 styles_file = Path(data_root) / data_hparams["styles_file"]
-                all_styles = np.loadtxt(styles_file, dtype=str).tolist()            
+                all_styles = np.loadtxt(styles_file, dtype=str).tolist()  # 如果只有一行，all_styles就不是list而是string了
                 styles_oh = np.tile(styles2onehot(all_styles, parse_token(files[fi], data_hparams["style_index"])),(n_frames,1))
                 self.n_styles = len(all_styles)
             else:
