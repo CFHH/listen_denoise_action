@@ -177,7 +177,7 @@ class LitLDA(BaseModel):
         anim_clip = self.destandardizeOutput(poses)
         if not self.unconditional:
             out_ctrl = self.destandardizeInput(ctrl)
-            anim_clip = torch.cat((anim_clip, out_ctrl), dim=2) 
+            anim_clip = torch.cat((anim_clip, out_ctrl), dim=2)  # TODO ZZW 这里在末尾加了3列，为什么是3列？audio feature?
 
         return anim_clip
     

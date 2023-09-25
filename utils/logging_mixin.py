@@ -22,7 +22,13 @@ train_columns = None
 ignored_columns = None
 full_columns = None
 
-def gesture_feats_to_bvh(pred_clips, dataset_root):
+def gesture_feats_to_bvh(pred_clips, dataset_root, from_train=False):
+    """
+    :param pred_clips:
+    :param dataset_root:
+    :param from_train: LitLDA.synthesize()，加了3帧
+    :return:
+    """
     global parameterizer, mocap_data_sample, train_columns, ignored_columns, full_columns
     if parameterizer is None:
         # parameterizer, mocap_data_sample
@@ -57,6 +63,8 @@ def gesture_feats_to_bvh(pred_clips, dataset_root):
 
     mocap_datas = []
     for clip in pred_clips:
+        if from_train:
+            clip = clip[:, :-3]  # TODO ZZW
         frames = clip.shape[0]
         zeros = np.zeros((frames, len(ignored_columns)))
         channels = np.concatenate([clip, zeros], axis=-1)
@@ -108,7 +116,7 @@ class LoggingMixin:
         
     def feats_to_bvh(self, pred_clips):
         if self.hparams.Data["datapipe_filename"] == 'inverse_transform_gesture':
-            return gesture_feats_to_bvh(pred_clips, self.hparams.dataset_root)
+            return gesture_feats_to_bvh(pred_clips, self.hparams.dataset_root, from_train=True)
         #import pdb;pdb.set_trace()
         data_pipeline = jl.load(Path(self.hparams.dataset_root) / self.hparams.Data["datapipe_filename"])
         n_feats = data_pipeline["cnt"].n_features
