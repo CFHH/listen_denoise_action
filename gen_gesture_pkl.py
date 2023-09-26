@@ -82,7 +82,7 @@ def process_motion(bvh_filename, motions_cols, save_path, all_files):
     return motion_name
 
 
-def process_new_dataset():
+def process_paired_dataset():
     save_path = './data/my_gesture_data/'
 
     bone_feature_filename = './data/my_gesture_data/pose_features.expmap.txt'
@@ -109,5 +109,13 @@ def process_new_dataset():
     return
 
 
+def process_new_dataset():
+    save_path = './data/my_speech/'
+    audio_file_name = './data/my_speech/NaturalTalking04.wav'
+    process_audio(audio_file_name, save_path, None, align_to_raw_data=False, process_mirror=False, genra='_gSP')
+
+
+
 if __name__ == "__main__":
+    #process_paired_dataset()
     process_new_dataset()

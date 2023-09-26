@@ -7,5 +7,6 @@ dl_dataset/
 results/
 pretrained_models/*.ckpt
 pretrained_models/my_train_data/
+pretrained_models/my_gesture_data/
 /*.bvh
 *.log

@@ -32,25 +32,32 @@ def exec_cmd(cmd):
 
 if __name__ == "__main__":
     use_raw_data = False
+    is_gesture = True
     if use_raw_data:
         checkpoint = '../pretrained_models/dance_LDA.ckpt'
         data_dir = '../data/motorica_dance'
         wav_dir = '../data/motorica_dance/wav'
         basenames = np.loadtxt('../data/motorica_dance/gen_files.txt', dtype=str).tolist()
+        dest_dir = '../results/generated/dance_LDA'
+    elif is_gesture:
+        checkpoint = 'I:/listen_denoise_action/pretrained_models/my_gesture_data/checkpoints/epoch=9-step=189440.ckpt'
+        data_dir = 'I:/listen_denoise_action/data/my_speech'
+        wav_dir = 'I:/listen_denoise_action/data/my_speech'
+        basenames = np.loadtxt('../data/my_speech/my_gen_files.txt', dtype=str).tolist()
+        dest_dir = '../results/generated/gesture_LDA'
     else:
-        checkpoint = '../pretrained_models/my_results/checkpoints/epoch=9-step=403080.ckpt'
+        checkpoint = '../pretrained_models/my_train_data/checkpoints/epoch=9-step=403080.ckpt'
         data_dir = '../data/my_wav'
         wav_dir = '../data/my_wav'
         basenames = np.loadtxt('../data/my_wav/my_gen_files.txt', dtype=str).tolist()
-
-    dest_dir = '../results/generated/dance_LDA'
+        dest_dir = '../results/generated/dance_LDA'
     os.makedirs(dest_dir, exist_ok=True)
 
     start = 0
     seed = 150
     fps = 30
     trim_s = 0  # 这个就不能不是零
-    length_s = 10  # 每一段生成生成多少秒
+    length_s = 20  # 每一段生成生成多少秒
     trim = trim_s * fps
     length = length_s * fps
     fixed_seed = False
@@ -60,9 +67,14 @@ if __name__ == "__main__":
 
     for wavfile in basenames:
         print( f"process {wavfile} ......")
-        start = 0
+        if is_gesture:
+            start = fps * 8
+            gen_cnt = 25
+        else:
+            start = 0
+            gen_cnt = 12
         style_token = wavfile.split('_')[1]
-        for postfix in range(12):  # 生成几段，每段长length_s秒
+        for postfix in range(gen_cnt):  # 生成几段，每段长length_s秒
             input_file = f'{wavfile}.audio29_{fps}fps.pkl'
             output_file = f'{wavfile[0:-3]}_{postfix}_{style_token}'
 

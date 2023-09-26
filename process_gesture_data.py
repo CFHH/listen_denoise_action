@@ -18,6 +18,7 @@ from pymo.data import MocapData
 from pymo.parsers import BVHParser
 from pymo.writers import BVHWriter
 from pymo.preprocessing import MocapParameterizer, RootTransformer
+from pymo.Quaternions import Quaternions
 
 
 def dataframe_nansinf2zeros(df):
@@ -171,5 +172,18 @@ def process_motion():
     return
 
 
+def test_quat():
+    rot_order = 'ZXY'
+    erler = np.array([0, 0, -180], dtype=float)
+    rotation = np.pi / 180.0 * erler
+    quat = Quaternions.from_euler(rotation, order=rot_order.lower(), world=False)
+
+    side_dir = quat * np.array([[-1.0, 0.0, 0.0]])
+    forward = np.cross(np.array([[0.0, 1.0, 0.0]]), side_dir)
+
+    return
+
+
 if __name__ == "__main__":
+    test_quat()
     process_motion()
