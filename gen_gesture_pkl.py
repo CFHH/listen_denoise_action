@@ -14,7 +14,7 @@ from pymo.data import MocapData
 from pymo.parsers import BVHParser
 from pymo.writers import BVHWriter
 from pymo.preprocessing import MocapParameterizer, RootTransformer
-from utils.logging_mixin import gesture_feats_to_bvh
+from utils.logging_mixin import gesture_feats_to_bvh, roottransformer_method, roottransformer_separate_root
 from gen_music_pkl import process_audio
 
 
@@ -54,6 +54,12 @@ def process_motion(bvh_filename, motions_cols, save_path, all_files):
     full_pkl_data = expmap_data.values
 
     # TODO dxposition、dzposition、dyrotation
+    root_transformer = RootTransformer(roottransformer_method, separate_root=roottransformer_separate_root)
+    trans_datas = root_transformer.fit_transform(bvh_datas)
+    trans_data = trans_datas[0]
+    if roottransformer_method == 'abdolute_translation_deltas':
+        full_pkl_data['Hips_dXposition'] = trans_data.values['Hips_dXposition']
+        full_pkl_data['Hips_dZposition'] = trans_data.values['Hips_dZposition']
 
     # 实际训练的的骨骼
     panda_data = full_pkl_data[motions_cols]

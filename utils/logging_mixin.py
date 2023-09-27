@@ -18,6 +18,9 @@ from pymo.parsers import BVHParser
 
 parameterizer = None
 mocap_data_sample = None
+roottransformer = None
+roottransformer_method = 'abdolute_translation_deltas'
+roottransformer_separate_root = False
 train_columns = None
 ignored_columns = None
 full_columns = None
@@ -29,7 +32,7 @@ def gesture_feats_to_bvh(pred_clips, dataset_root, from_train=False):
     :param from_train: LitLDA.synthesize()，加了3帧
     :return:
     """
-    global parameterizer, mocap_data_sample, train_columns, ignored_columns, full_columns
+    global parameterizer, mocap_data_sample, roottransformer, train_columns, ignored_columns, full_columns
     if parameterizer is None:
         # parameterizer, mocap_data_sample
         skeleton_bvh = os.path.join(dataset_root, 'skeleton.bvh')
@@ -39,6 +42,8 @@ def gesture_feats_to_bvh(pred_clips, dataset_root, from_train=False):
         parameterizer = MocapParameterizer('expmap')
         expmap_datas = parameterizer.fit_transform(bvh_datas)
         mocap_data_sample = expmap_datas[0]
+
+        roottransformer = RootTransformer(roottransformer_method, separate_root=roottransformer_separate_root)
 
         # train_columns, ignored_columns, full_columns
         bone_feature_filename = os.path.join(dataset_root, 'pose_features.expmap.txt')
@@ -84,7 +89,8 @@ def gesture_feats_to_bvh(pred_clips, dataset_root, from_train=False):
 
         mocap_datas.append(new_data)
 
-    my_bvh_datas = parameterizer.inverse_transform(mocap_datas)
+    temp_datas = parameterizer.inverse_transform(mocap_datas)
+    my_bvh_datas = roottransformer.inverse_transform(temp_datas)
     return my_bvh_datas
 
 

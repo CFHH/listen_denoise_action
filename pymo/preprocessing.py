@@ -1003,7 +1003,9 @@ class RootTransformer(BaseEstimator, TransformerMixin):
         Q = []
 
         for track in X:
-            if self.method == 'abdolute_translation_deltas':
+            if self.method == 'simple':
+                pass
+            elif self.method == 'abdolute_translation_deltas':
                 new_df = track.values.copy()
                 xpcol = '%s_Xposition'%track.root_name
                 ypcol = '%s_Yposition'%track.root_name
@@ -1301,7 +1303,9 @@ class RootTransformer(BaseEstimator, TransformerMixin):
 
         for track in X:
             new_track = track.clone()
-            if self.method == 'abdolute_translation_deltas':
+            if self.method == 'simple':
+                pass
+            elif self.method == 'abdolute_translation_deltas':
                 new_df = new_track.values
                 xpcol = '%s_Xposition'%track.root_name
                 ypcol = '%s_Yposition'%track.root_name
@@ -1314,12 +1318,17 @@ class RootTransformer(BaseEstimator, TransformerMixin):
                 dx = track.values[dxpcol].values
                 dz = track.values[dzpcol].values
 
+                """
                 recx = [startx]
                 recz = [startz]
 
                 for i in range(dx.shape[0]-1):
                     recx.append(recx[i]+dx[i+1])
                     recz.append(recz[i]+dz[i+1])
+                """
+
+                recx = dx.cumsum() + (startx - dx[0])
+                recz = dz.cumsum() + (startz - dz[0])
 
                 # recx = [recx[i]+dx[i+1] for i in range(dx.shape[0]-1)]
                 # recz = [recz[i]+dz[i+1] for i in range(dz.shape[0]-1)]
