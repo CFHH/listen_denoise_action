@@ -195,6 +195,48 @@ def test_quat():
     return
 
 
+def mirror_bvh():
+    all_joints= ['RightFoot', 'RightLeg', 'RightUpLeg',
+                 'LeftFoot', 'LeftLeg', 'LeftUpLeg',
+                 'RightHand', 'RightForeArm', 'RightArm', 'RightShoulder',
+                 'LeftHand', 'LeftForeArm', 'LeftArm', 'LeftShoulder',
+                 'Head', 'Neck1', 'Neck', 'Spine3', 'Spine2', 'Spine1', 'Spine', 'Hips']
+    left_right_joints = ['Foot', 'Leg', 'UpLeg', 'Hand', 'ForeArm', 'Arm', 'Shoulder']
+
+    bvh_filename = './data/speech_gesture/TestSeq010.bvh'
+    # 加载bvh文件
+    bvh_parser = BVHParser()
+    bvh_data = bvh_parser.parse(bvh_filename)
+    # 这算成30fps
+    bvh_data.values = bvh_data.values[::2]
+    bvh_data.framerate = bvh_data.framerate * 2
+    # xz
+    bvh_data.values['Hips_Xposition'] = bvh_data.values['Hips_Xposition'] - bvh_data.values['Hips_Xposition'][0]
+    bvh_data.values['Hips_Zposition'] = bvh_data.values['Hips_Zposition'] - bvh_data.values['Hips_Zposition'][0]
+
+    # 平移：x=-x，z=-z，y不变
+    bvh_data.values['Hips_Xposition'] *= -1
+
+    bvh_data.values['Hips_Zposition'] *= -1
+    # 旋转：1、左右互换；2、所有节点，x旋转不变，y旋转变相反数，z旋转变相反数。名字举例Hip_Zrotation、RightFoot_Xrotation
+    for name in left_right_joints:
+        for r in ['_Xrotation', '_Yrotation', '_Zrotation']:
+            left_key = 'Left' + name + r
+            right_key = 'Right' + name + r
+            temp = bvh_data.values[left_key]
+            bvh_data.values[left_key] = bvh_data.values[right_key]
+            bvh_data.values[right_key] = temp
+    for name in all_joints:
+        for r in ['_Yrotation', '_Zrotation']:
+            key = name + r
+            bvh_data.values[key] *= -1
+
+
+    # 保存一下
+    write_bvh(bvh_data, './mirror.bvh')
+    return
+
+
 if __name__ == "__main__":
-    #test_quat()
-    process_motion()
+    mirror_bvh()
+    #process_motion()
