@@ -16,6 +16,7 @@ from pymo.writers import BVHWriter
 from pymo.preprocessing import MocapParameterizer, RootTransformer
 from utils.logging_mixin import gesture_feats_to_bvh, roottransformer_method, roottransformer_separate_root
 from gen_music_pkl import process_audio
+from pymo.pipeline import get_pipeline, transform, transform2pkl, inverse_transform
 
 
 def write_bvh(bvh_data, fname):
@@ -38,37 +39,43 @@ def process_motion(bvh_filename, motions_cols, save_path, all_files):
     # 加载bvh文件
     bvh_parser = BVHParser()
     bvh_data = bvh_parser.parse(bvh_filename)
-    # 这算成30fps
+    # 折算成30fps
     bvh_data.values = bvh_data.values[::2]
-    bvh_data.framerate = bvh_data.framerate * 2
+    bvh_data.framerate = 1 / 30
     # 初始站位归零
     bvh_data.values['Hips_Xposition'] -= bvh_data.values['Hips_Xposition'][0]
     bvh_data.values['Hips_Zposition'] -= bvh_data.values['Hips_Zposition'][0]
     # 保存一下
     bvh_datas = [bvh_data]
 
-    # 算alpha、beta、gamma参数
-    parameterizer = MocapParameterizer('expmap')
-    expmap_datas = parameterizer.fit_transform(bvh_datas)
-    expmap_data = expmap_datas[0]
-    full_pkl_data = expmap_data.values
+    use_v1 = False
+    if use_v1:
+        # 算alpha、beta、gamma参数
+        parameterizer = MocapParameterizer('expmap')
+        expmap_datas = parameterizer.fit_transform(bvh_datas)
+        expmap_data = expmap_datas[0]
+        full_pkl_data = expmap_data.values
 
-    # TODO dxposition、dzposition、dyrotation
-    root_transformer = RootTransformer(roottransformer_method, separate_root=roottransformer_separate_root)
-    trans_datas = root_transformer.fit_transform(bvh_datas)
-    trans_data = trans_datas[0]
-    if roottransformer_method == 'abdolute_translation_deltas':
-        full_pkl_data['Hips_dXposition'] = trans_data.values['Hips_dXposition']
-        full_pkl_data['Hips_dZposition'] = trans_data.values['Hips_dZposition']
+        # TODO dxposition、dzposition、dyrotation
+        root_transformer = RootTransformer(roottransformer_method, separate_root=roottransformer_separate_root)
+        trans_datas = root_transformer.fit_transform(bvh_datas)
+        trans_data = trans_datas[0]
+        if roottransformer_method == 'abdolute_translation_deltas':
+            full_pkl_data['Hips_dXposition'] = trans_data.values['Hips_dXposition']
+            full_pkl_data['Hips_dZposition'] = trans_data.values['Hips_dZposition']
 
-    # 实际训练的的骨骼
-    panda_data = full_pkl_data[motions_cols]
+        # 实际训练的的骨骼
+        panda_data = full_pkl_data[motions_cols]
+    else:
+        pipe = get_pipeline(is_dance_skeleton=False)
+        mocap_datas = transform2pkl(pipe, bvh_datas)
+        panda_data = mocap_datas[0].values[motions_cols]
 
     # 写pkl
     with open(save_name_1, 'wb') as pkl_f1:
         pkl.dump(panda_data, pkl_f1)
 
-    dotest = False
+    dotest = True
     if dotest:
         # 加载pkl
         with open(save_name_1, 'rb') as ff:
@@ -80,7 +87,7 @@ def process_motion(bvh_filename, motions_cols, save_path, all_files):
         dataset_root = './data/my_gesture_data/'
         my_bvh_datas = gesture_feats_to_bvh(my_clips, dataset_root)
         my_bvh_data = my_bvh_datas[0]
-        my_bvh_diff = my_bvh_data.values[bvh_data.values.columns].values - bvh_data.values[bvh_data.values.columns].values
+        #my_bvh_diff = my_bvh_data.values[bvh_data.values.columns].values - bvh_data.values[bvh_data.values.columns].values
         my_bvh_data.values['Hips_Xposition'] += bvh_data.values['Hips_Xposition'][0] - my_bvh_data.values['Hips_Xposition'][0]
         my_bvh_data.values['Hips_Zposition'] += bvh_data.values['Hips_Zposition'][0] - my_bvh_data.values['Hips_Zposition'][0]
         write_bvh(my_bvh_data, f'./{motion_name}.bvh')
@@ -123,5 +130,5 @@ def process_new_dataset():
 
 
 if __name__ == "__main__":
-    #process_paired_dataset()
-    process_new_dataset()
+    process_paired_dataset()
+    #process_new_dataset()

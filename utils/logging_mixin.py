@@ -14,6 +14,35 @@ from pymo.preprocessing import *
 from pymo.viz_tools import *
 from scipy import interpolate
 from pymo.parsers import BVHParser
+from pymo.pipeline import get_pipeline, transform, transform2pkl, inverse_transform
+
+
+warmed_pipe = None
+expected_columns = 0
+def warmup_pipeline(dataset_root):
+    global warmed_pipe
+    skeleton_bvh = os.path.join(dataset_root, 'skeleton.bvh')
+    bvh_parser = BVHParser()
+    bvh_data = bvh_parser.parse(skeleton_bvh)
+    bvh_data.framerate = 1 / 30
+    bvh_datas = [bvh_data]
+    warmed_pipe = get_pipeline(is_dance_skeleton=False)
+    transform(warmed_pipe, bvh_datas)
+
+def gesture_feats_to_bvh(pred_clips, dataset_root, from_train=False):
+    global warmed_pipe, expected_columns
+    if warmed_pipe is None:
+        warmup_pipeline(dataset_root)
+        bone_feature_filename = os.path.join(dataset_root, 'pose_features.expmap.txt')
+        train_columns = np.loadtxt(bone_feature_filename, dtype=str).tolist()
+        expected_columns = len(train_columns)
+
+    columns = pred_clips.shape[-1]
+    if columns > expected_columns:
+        pred_clips = pred_clips[..., 0:expected_columns]
+
+    my_bvh_datas = inverse_transform(warmed_pipe, pred_clips)
+    return my_bvh_datas
 
 
 parameterizer = None
@@ -25,7 +54,7 @@ train_columns = None
 ignored_columns = None
 full_columns = None
 
-def gesture_feats_to_bvh(pred_clips, dataset_root, from_train=False):
+def gesture_feats_to_bvh_old(pred_clips, dataset_root, from_train=False):
     """
     :param pred_clips:
     :param dataset_root:
