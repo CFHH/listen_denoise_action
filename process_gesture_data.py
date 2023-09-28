@@ -17,14 +17,9 @@ import copy
 from pymo.data import MocapData
 from pymo.parsers import BVHParser
 from pymo.writers import BVHWriter
-from pymo.preprocessing import MocapParameterizer, RootTransformer
+from pymo.preprocessing import JointSelector, RootTransformer, MocapParameterizer, ConstantsRemover, FeatureCounter, Numpyfier
 from pymo.Quaternions import Quaternions
-
-
-def dataframe_nansinf2zeros(df):
-    df.fillna(0, inplace=True)  # 用0填充NA/NaN
-    df.replace([np.inf, -np.inf], 0, inplace=True) # 用0填充np.inf和-np.inf
-    return df
+from pipeline import get_pipeline, transform, inverse_transform
 
 
 def dance_feats_to_bvh(pred_clips):
@@ -82,7 +77,7 @@ def gesture_feats_to_bvh(pred_clips, parameterizer, motions_cols, root_transform
     #new_data.take_name = ''
 
     new_datas = [new_data]
-    root_transformer = RootTransformer('abdolute_translation_deltas', separate_root=False)
+    #root_transformer = RootTransformer('abdolute_translation_deltas', separate_root=False)
     temp_datas = parameterizer.inverse_transform(new_datas)
     my_bvh_datas = root_transformer.inverse_transform(temp_datas)
     # 这些没有啊
@@ -237,6 +232,38 @@ def mirror_bvh():
     return
 
 
+def test_pipeline():
+    # 一些文件
+    bvh_filename = './data/speech_gesture/TestSeq010.bvh'
+    bone_feature_filename = './data/speech_gesture/pose_features.expmap.txt'
+
+    # 加载bvh文件
+    bvh_parser = BVHParser()
+    bvh_data = bvh_parser.parse(bvh_filename)
+    # 这算成30fps
+    bvh_data.values = bvh_data.values[::2]
+    bvh_data.framerate = bvh_data.framerate * 2
+    # xz
+    bvh_data.values['Hips_Xposition'] = bvh_data.values['Hips_Xposition'] - bvh_data.values['Hips_Xposition'][0]
+    bvh_data.values['Hips_Zposition'] = bvh_data.values['Hips_Zposition'] - bvh_data.values['Hips_Zposition'][0]
+    # 保存一下
+    write_bvh(bvh_data, './raw.bvh')
+    bvh_datas = [bvh_data]
+
+    # pipeline
+    pipe = get_pipeline(False)
+    clips = transform(pipe, bvh_datas)
+    my_bvh_datas = inverse_transform(pipe, clips)
+
+    my_bvh_data = my_bvh_datas[0]
+    my_bvh_diff = my_bvh_data.values[bvh_data.values.columns].values - bvh_data.values[bvh_data.values.columns].values
+    my_bvh_data.values['Hips_Xposition'] += bvh_data.values['Hips_Xposition'][0] - my_bvh_data.values['Hips_Xposition'][0]
+    my_bvh_data.values['Hips_Zposition'] += bvh_data.values['Hips_Zposition'][0] - my_bvh_data.values['Hips_Zposition'][0]
+    write_bvh(my_bvh_data, './my_pipe.bvh')
+
+    return
+
+
 if __name__ == "__main__":
-    mirror_bvh()
+    test_pipeline()
     #process_motion()

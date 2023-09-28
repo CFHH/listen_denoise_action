@@ -16,6 +16,7 @@ import librosa
 from pymo.parsers import BVHParser
 from pymo.writers import BVHWriter
 from pymo.preprocessing import MocapParameterizer, RootTransformer
+from pipeline import get_pipeline, transform, inverse_transform
 
 
 def dataframe_nansinf2zeros(df):
@@ -150,6 +151,37 @@ def process_motion():
     return
 
 
+def test_pipeline():
+    # 加载bvh文件
+    filename = './data/bvh/kthjazz_gCH_sFM_cAll_d02_mCH_ch01_beatlestreetwashboardbandfortyandtight_003.bvh'
+    bvh_parser = BVHParser()
+    bvh_data = bvh_parser.parse(filename)
+    # 这算成30fps
+    bvh_data.values = bvh_data.values[::4]
+    bvh_data.framerate = bvh_data.framerate * 4
+    bvh_data.values['Hips_Xposition'] -= bvh_data.values['Hips_Xposition'][0]
+    bvh_data.values['Hips_Zposition'] -= bvh_data.values['Hips_Zposition'][0]
+    # 保存一下
+    write_bvh(bvh_data, './raw.bvh')
+    bvh_datas = [bvh_data]
+
+    # pipeline
+    pipe = get_pipeline(True)
+    clips = transform(pipe, bvh_datas)
+    my_bvh_datas = inverse_transform(pipe, clips)
+
+    my_bvh_data = my_bvh_datas[0]
+    my_bvh_diff = my_bvh_data.values[bvh_data.values.columns].values - bvh_data.values[bvh_data.values.columns].values
+    my_bvh_data.values['Hips_Xposition'] += bvh_data.values['Hips_Xposition'][0] - my_bvh_data.values['Hips_Xposition'][
+        0]
+    my_bvh_data.values['Hips_Zposition'] += bvh_data.values['Hips_Zposition'][0] - my_bvh_data.values['Hips_Zposition'][
+        0]
+    write_bvh(my_bvh_data, './my_pipe.bvh')
+    return
+
+
+
 if __name__ == "__main__":
-    process_motion()
+    test_pipeline()
+    #process_motion()
     #process_audio()
