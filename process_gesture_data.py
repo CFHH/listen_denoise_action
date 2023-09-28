@@ -19,7 +19,7 @@ from pymo.parsers import BVHParser
 from pymo.writers import BVHWriter
 from pymo.preprocessing import JointSelector, RootTransformer, MocapParameterizer, ConstantsRemover, FeatureCounter, Numpyfier
 from pymo.Quaternions import Quaternions
-from pipeline import get_pipeline, transform, inverse_transform
+from pipeline import get_pipeline, transform, transform2pkl, inverse_transform
 
 
 def dance_feats_to_bvh(pred_clips):
@@ -232,17 +232,16 @@ def mirror_bvh():
     return
 
 
-def test_pipeline():
+def test_pipeline1():
     # 一些文件
     bvh_filename = './data/speech_gesture/TestSeq010.bvh'
-    bone_feature_filename = './data/speech_gesture/pose_features.expmap.txt'
 
     # 加载bvh文件
     bvh_parser = BVHParser()
     bvh_data = bvh_parser.parse(bvh_filename)
     # 这算成30fps
     bvh_data.values = bvh_data.values[::2]
-    bvh_data.framerate = bvh_data.framerate * 2
+    bvh_data.framerate = 1 / 30
     # xz
     bvh_data.values['Hips_Xposition'] = bvh_data.values['Hips_Xposition'] - bvh_data.values['Hips_Xposition'][0]
     bvh_data.values['Hips_Zposition'] = bvh_data.values['Hips_Zposition'] - bvh_data.values['Hips_Zposition'][0]
@@ -264,6 +263,55 @@ def test_pipeline():
     return
 
 
+def warmup_pipeline(dataset_root):
+    skeleton_bvh = os.path.join(dataset_root, 'skeleton.bvh')
+    bvh_parser = BVHParser()
+    bvh_data = bvh_parser.parse(skeleton_bvh)
+    bvh_data.framerate = 1 / 30
+    bvh_datas = [bvh_data]
+    pipeline = get_pipeline(False)
+    transform(pipeline, bvh_datas)
+    return pipeline
+
+
+def test_pipeline2():
+    # 一些文件
+    bvh_filename = './data/speech_gesture/TestSeq010.bvh'
+    bone_feature_filename = './data/my_gesture_data/pose_features.expmap.txt'
+    motions_cols = np.loadtxt(bone_feature_filename, dtype=str).tolist()
+
+    # 加载bvh文件
+    bvh_parser = BVHParser()
+    bvh_data = bvh_parser.parse(bvh_filename)
+    # 这算成30fps
+    bvh_data.values = bvh_data.values[::2]
+    bvh_data.framerate = 1 / 30
+    # xz
+    bvh_data.values['Hips_Xposition'] = bvh_data.values['Hips_Xposition'] - bvh_data.values['Hips_Xposition'][0]
+    bvh_data.values['Hips_Zposition'] = bvh_data.values['Hips_Zposition'] - bvh_data.values['Hips_Zposition'][0]
+    # 保存一下
+    write_bvh(bvh_data, './raw.bvh')
+
+    # 模拟到pkl文件
+    bvh_datas = [bvh_data]
+    pipe = get_pipeline(False)
+    mocap_datas = transform2pkl(pipe, bvh_datas)
+    pkl_data = mocap_datas[0].values[motions_cols]
+    # 模拟加载pkl到训练生成数据
+    clips = pkl_data.values[np.newaxis, ...]
+    # 模拟把训练生成数据转成bvh
+    pipe2 = warmup_pipeline('./data/my_gesture_data')
+    my_bvh_datas = inverse_transform(pipe2, clips)
+
+    my_bvh_data = my_bvh_datas[0]
+    my_bvh_diff = my_bvh_data.values[bvh_data.values.columns].values - bvh_data.values[bvh_data.values.columns].values
+    my_bvh_data.values['Hips_Xposition'] += bvh_data.values['Hips_Xposition'][0] - my_bvh_data.values['Hips_Xposition'][0]
+    my_bvh_data.values['Hips_Zposition'] += bvh_data.values['Hips_Zposition'][0] - my_bvh_data.values['Hips_Zposition'][0]
+    write_bvh(my_bvh_data, './my_pipe.bvh')
+
+    return
+
+
 if __name__ == "__main__":
-    test_pipeline()
+    test_pipeline2()
     #process_motion()
