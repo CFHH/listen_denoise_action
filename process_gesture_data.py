@@ -19,7 +19,7 @@ from pymo.parsers import BVHParser
 from pymo.writers import BVHWriter
 from pymo.preprocessing import JointSelector, RootTransformer, MocapParameterizer, ConstantsRemover, FeatureCounter, Numpyfier
 from pymo.Quaternions import Quaternions
-from pipeline import get_pipeline, transform, transform2pkl, inverse_transform
+from pymo.pipeline import get_pipeline, transform, transform2pkl, inverse_transform
 
 
 def dance_feats_to_bvh(pred_clips):

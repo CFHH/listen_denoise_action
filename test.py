@@ -16,7 +16,7 @@ import librosa
 from pymo.parsers import BVHParser
 from pymo.writers import BVHWriter
 from pymo.preprocessing import MocapParameterizer, RootTransformer
-from pipeline import get_pipeline, transform, inverse_transform
+from pymo.pipeline import get_pipeline, transform, inverse_transform
 
 
 def dataframe_nansinf2zeros(df):
