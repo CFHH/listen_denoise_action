@@ -8,7 +8,7 @@ Data:
   input_modality: audio29_30fps
   output_modality: expmap_30fps
   input_feats_file: ch0_spec_beatact_features.txt
-  datapipe_filename: inverse_transform_gesture # data_pipe.expmap_30fps.sav inverse_transform_gesture
+  datapipe_filename: inverse_transform_gesture # logging_mixin.py -- feats_to_bvh()
   timestretch_prob: 0.2
   timestretch_factor: 0.1
 Diffusion:

@@ -22,6 +22,9 @@ from pymo.Quaternions import Quaternions
 from pymo.pipeline import get_pipeline, transform, transform2pkl, inverse_transform
 
 
+# 测试用
+
+
 def dance_feats_to_bvh(pred_clips):
     # import pdb;pdb.set_trace()
     data_pipeline = jl.load('./data/motorica_dance/data_pipe.expmap_30fps.sav')
@@ -195,10 +198,13 @@ def mirror_bvh():
                  'LeftFoot', 'LeftLeg', 'LeftUpLeg',
                  'RightHand', 'RightForeArm', 'RightArm', 'RightShoulder',
                  'LeftHand', 'LeftForeArm', 'LeftArm', 'LeftShoulder',
-                 'Head', 'Neck1', 'Neck', 'Spine3', 'Spine2', 'Spine1', 'Spine', 'Hips']
+                 #'Head', 'Neck', 'Spine1', 'Spine', 'Hips']  # dance 骨骼用这行
+                 'Head', 'Neck1', 'Neck', 'Spine3', 'Spine2', 'Spine1', 'Spine', 'Hips']  # gesture 骨骼用这行
     left_right_joints = ['Foot', 'Leg', 'UpLeg', 'Hand', 'ForeArm', 'Arm', 'Shoulder']
 
     bvh_filename = './data/speech_gesture/TestSeq010.bvh'
+    #bvh_filename = './data/bvh/kthstreet_gKR_sFM_cAll_d01_mKR4_ch04.bvh'
+
     # 加载bvh文件
     bvh_parser = BVHParser()
     bvh_data = bvh_parser.parse(bvh_filename)
@@ -211,8 +217,8 @@ def mirror_bvh():
 
     # 平移：x=-x，z=-z，y不变
     bvh_data.values['Hips_Xposition'] *= -1
-
     bvh_data.values['Hips_Zposition'] *= -1
+
     # 旋转：1、左右互换；2、所有节点，x旋转不变，y旋转变相反数，z旋转变相反数。名字举例Hip_Zrotation、RightFoot_Xrotation
     for name in left_right_joints:
         for r in ['_Xrotation', '_Yrotation', '_Zrotation']:
@@ -259,6 +265,8 @@ def test_pipeline1():
     my_bvh_data.values['Hips_Xposition'] += bvh_data.values['Hips_Xposition'][0] - my_bvh_data.values['Hips_Xposition'][0]
     my_bvh_data.values['Hips_Zposition'] += bvh_data.values['Hips_Zposition'][0] - my_bvh_data.values['Hips_Zposition'][0]
     write_bvh(my_bvh_data, './my_pipe.bvh')
+
+    # 逆回来后，左右反了，可能是那个手势数据集默认Y转接近180度的原因
 
     return
 
@@ -313,5 +321,6 @@ def test_pipeline2():
 
 
 if __name__ == "__main__":
-    test_pipeline2()
+    #test_pipeline2()
+    mirror_bvh()
     #process_motion()

@@ -3,11 +3,13 @@ from sklearn.pipeline import Pipeline
 
 
 def get_pipeline(is_dance_skeleton):
+    # 作者的数据对应的骨骼
     dance_joints = ['Spine', 'Spine1', 'Neck', 'Head',
                     'RightShoulder', 'RightArm', 'RightForeArm', 'RightHand',
                     'LeftShoulder', 'LeftArm', 'LeftForeArm', 'LeftHand',
                     'RightUpLeg', 'RightLeg', 'RightFoot',
                     'LeftUpLeg', 'LeftLeg', 'LeftFoot', 'reference']
+    # Trinity Speech-Gesture I\GENEA_Challenge_2020_data_release 的骨骼
     gesture_joints = ['Spine', 'Spine1', 'Spine2', 'Spine3', 'Neck', 'Neck1', 'Head',
                       'RightShoulder', 'RightArm', 'RightForeArm', 'RightHand',
                       'LeftShoulder', 'LeftArm', 'LeftForeArm', 'LeftHand',

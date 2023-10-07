@@ -28,6 +28,7 @@ def warmup_pipeline(dataset_root):
     bvh_datas = [bvh_data]
     warmed_pipe = get_pipeline(is_dance_skeleton=False)
     transform(warmed_pipe, bvh_datas)
+    return warmed_pipe
 
 def gesture_feats_to_bvh(pred_clips, dataset_root, from_train=False):
     global warmed_pipe, expected_columns

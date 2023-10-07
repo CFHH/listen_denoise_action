@@ -25,6 +25,34 @@ def write_bvh(bvh_data, fname):
         writer.write(bvh_data, f)
 
 
+def mirror(bvh_data):
+    all_joints = ['RightFoot', 'RightLeg', 'RightUpLeg',
+                  'LeftFoot', 'LeftLeg', 'LeftUpLeg',
+                  'RightHand', 'RightForeArm', 'RightArm', 'RightShoulder',
+                  'LeftHand', 'LeftForeArm', 'LeftArm', 'LeftShoulder',
+                  'Head', 'Neck1', 'Neck', 'Spine3', 'Spine2', 'Spine1', 'Spine', 'Hips']
+    left_right_joints = ['Foot', 'Leg', 'UpLeg', 'Hand', 'ForeArm', 'Arm', 'Shoulder']
+
+    # 平移：x=-x，z=-z，y不变
+    bvh_data.values['Hips_Xposition'] *= -1
+    bvh_data.values['Hips_Zposition'] *= -1
+
+    # 旋转：1、左右互换；2、所有节点，x旋转不变，y旋转变相反数，z旋转变相反数
+    for name in left_right_joints:
+        for r in ['_Xrotation', '_Yrotation', '_Zrotation']:
+            left_key = 'Left' + name + r
+            right_key = 'Right' + name + r
+            temp = bvh_data.values[left_key]
+            bvh_data.values[left_key] = bvh_data.values[right_key]
+            bvh_data.values[right_key] = temp
+    for name in all_joints:
+        for r in ['_Yrotation', '_Zrotation']:
+            key = name + r
+            bvh_data.values[key] *= -1
+
+    return bvh_data
+
+
 def process_motion(bvh_filename, motions_cols, save_path, all_files):
     motion_name = os.path.basename(bvh_filename)
     motion_name = motion_name.split('.')[0]
@@ -33,8 +61,13 @@ def process_motion(bvh_filename, motions_cols, save_path, all_files):
     temp_name = motion_name + '_gSP_00'
     all_files.append(temp_name)
     save_name_1 = os.path.join(save_path, temp_name + '.expmap_30fps.pkl')
-    if os.path.isfile(save_name_1):
+    temp_name = motion_name + '_gSP_00_mirrored'
+    all_files.append(temp_name)
+    save_name_2 = os.path.join(save_path, temp_name + '.expmap_30fps.pkl')
+    if os.path.isfile(save_name_1) and os.path.isfile(save_name_2):
         return motion_name
+
+    ####################################################################################################################
 
     # 加载bvh文件
     bvh_parser = BVHParser()
@@ -75,12 +108,29 @@ def process_motion(bvh_filename, motions_cols, save_path, all_files):
     with open(save_name_1, 'wb') as pkl_f1:
         pkl.dump(panda_data, pkl_f1)
 
-    dotest = True
+    ####################################################################################################################
+
+    # 镜像
+    mirror_bvh_data = mirror(bvh_data)
+    mirror_bvh_datas = [mirror_bvh_data]
+    if use_v1:
+        pass
+    else:
+        mirror_mocap_datas = transform2pkl(pipe, mirror_bvh_datas)
+        mirror_panda_data = mirror_mocap_datas[0].values[motions_cols]
+
+    with open(save_name_2, 'wb') as pkl_f2:
+        pkl.dump(mirror_panda_data, pkl_f2)
+
+    ####################################################################################################################
+
+    dotest = False
     if dotest:
+        write_bvh(mirror_bvh_data, f'./{motion_name}_mirror_raw.bvh') # 这个是对的
         # 加载pkl
-        with open(save_name_1, 'rb') as ff:
+        with open(save_name_2, 'rb') as ff:
             reload_panda_data = pkl.load(ff).astype('float32')
-        diff = reload_panda_data - panda_data
+        #diff = reload_panda_data - panda_data
 
         # pkl_data转回bvh
         my_clips = reload_panda_data.values[np.newaxis, ...]
@@ -90,7 +140,7 @@ def process_motion(bvh_filename, motions_cols, save_path, all_files):
         #my_bvh_diff = my_bvh_data.values[bvh_data.values.columns].values - bvh_data.values[bvh_data.values.columns].values
         my_bvh_data.values['Hips_Xposition'] += bvh_data.values['Hips_Xposition'][0] - my_bvh_data.values['Hips_Xposition'][0]
         my_bvh_data.values['Hips_Zposition'] += bvh_data.values['Hips_Zposition'][0] - my_bvh_data.values['Hips_Zposition'][0]
-        write_bvh(my_bvh_data, f'./{motion_name}.bvh')
+        write_bvh(my_bvh_data, f'./{motion_name}_mirror_pkl.bvh') # 这个不一样，所以inverse还是有问题
 
     return motion_name
 
@@ -101,6 +151,12 @@ def process_paired_dataset():
     bone_feature_filename = './data/my_gesture_data/pose_features.expmap.txt'
     motions_cols = np.loadtxt(bone_feature_filename, dtype=str).tolist()
 
+    """
+    all_files = []
+    bvh_filename = './data/my_gesture_data/GENEA/test/motion/TestSeq010.bvh'
+    motion_name = process_motion(bvh_filename, motions_cols, save_path, all_files)
+    """
+
     sub_dataset_names = ['test', 'train']
     for sub_dataset_name in sub_dataset_names:
         all_files = []
@@ -110,8 +166,8 @@ def process_paired_dataset():
             print("Process %s" % bvh_filename)
             motion_name = process_motion(bvh_filename, motions_cols, save_path, all_files)
             audio_file_name = f'./data/my_gesture_data/GENEA/{sub_dataset_name}/audio/{motion_name}.wav'
-            process_audio(audio_file_name, save_path, None, align_to_raw_data=False, process_mirror=False, genra='_gSP')
-            #break
+            process_audio(audio_file_name, save_path, None, align_to_raw_data=False, process_mirror=True, genra='_gSP')
+            break
 
         save_list_name = os.path.join(save_path, f'dance_{sub_dataset_name}_files.txt')
         with open(save_list_name, 'w') as f:
