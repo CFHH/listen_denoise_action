@@ -75,7 +75,7 @@ Trainer:
     accelerator: cpu #gpu cpu
     devices: 1 #[0] 1
     accumulate_grad_batches: 1
-    default_root_dir: results/training/dance_LDA
+    default_root_dir: results/training/gesture_LDA
     gradient_clip_val: 25
     deterministic: false
     fast_dev_run: false

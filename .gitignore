@@ -9,5 +9,6 @@ pretrained_models/*.ckpt
 pretrained_models/my_train_data/
 pretrained_models/my_gesture_data_v1/
 pretrained_models/my_gesture_data_v2_mirror/
+pretrained_models/my_gesture_data/
 /*.bvh
 *.log
