@@ -153,7 +153,7 @@ class MotionDataset(torch.utils.data.Dataset):
             if n_frames >= seglen:
                 idx_array = torch.arange(start_idx, start_idx + n_frames).unfold(
                         0, seglen, 1
-                    ) # (n_frames, seglen)，左上角是0，右下角是n_frames-1，各行各列都递增
+                    ) # (n_frames, seglen)，左上角是0，右下角是n_frames-1，各行各列都递增。每一行代表的帧数序列都在同一个动作中，并且长度是 seglen = segment_length * 1.1 = 165
                 data["input"].append(in_feats)
                 data["output"].append(out_feats)
                 if self.n_styles>0:
@@ -170,8 +170,8 @@ class MotionDataset(torch.utils.data.Dataset):
 
         self.data = data
 
-        indexes=torch.cat(indexes, dim=0)
-        self.indexes = indexes[torch.randperm(indexes.size(0))] # 以行为单位，打乱次序
+        indexes=torch.cat(indexes, dim=0) # (segment数量, 165)
+        self.indexes = indexes[torch.randperm(indexes.size(0))] # 以行为单位，打乱次序，就是打乱数据集，每一行就是一条数据
         return
         
     def assert_not_const(self, data):

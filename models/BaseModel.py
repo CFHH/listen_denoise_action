@@ -23,8 +23,8 @@ class BaseModel(LoggingMixin, LightningModule):
         input_means=np.array([])
         input_stds=np.array([])
         if scalers["in_scaler"] is not None:
-            input_means = scalers["in_scaler"].mean_
-            input_stds = scalers["in_scaler"].scale_    
+            input_means = scalers["in_scaler"].mean_  # (3,)，音乐数据，每帧3个
+            input_stds = scalers["in_scaler"].scale_  # (3,)
 
         self.input_means = torch.from_numpy(input_means)
         self.input_scales = torch.from_numpy(input_stds)

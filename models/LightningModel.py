@@ -20,10 +20,10 @@ class LitLDA(BaseModel):
         self.input_dim = 0
         self.style_dim = 0
         if self.hparams.Data["scalers"]["in_scaler"] is not None:
-            self.input_dim = self.hparams.Data["scalers"]["in_scaler"].mean_.shape[0]
+            self.input_dim = self.hparams.Data["scalers"]["in_scaler"].mean_.shape[0]  # 音乐数据是3，ch0_spec_beatact_features.txt
         if self.hparams.Data["scalers"]["style_scaler"] is not None:
-            self.style_dim = self.hparams.Data["scalers"]["style_scaler"].mean_.shape[0]
-        self.pose_dim = self.hparams.Data["scalers"]["out_scaler"].mean_.shape[0]
+            self.style_dim = self.hparams.Data["scalers"]["style_scaler"].mean_.shape[0] # 风格的数量
+        self.pose_dim = self.hparams.Data["scalers"]["out_scaler"].mean_.shape[0] # 动作数据，是几去数pose_features.expmap.txt
         self.g_cond_dim = self.style_dim
         self.unconditional = self.input_dim == 0
         n_timesteps = self.hparams.Data["segment_length"]
@@ -34,8 +34,8 @@ class LitLDA(BaseModel):
         self.n_noise_schedule = diff_params["n_noise_schedule"]
         
         self.noise_schedule_name = "linear"                                                         
-        self.noise_schedule = torch.linspace(beta_min, beta_max, self.n_noise_schedule)
-        self.noise_level = torch.cumprod(1 - self.noise_schedule, dim=0)
+        self.noise_schedule = torch.linspace(beta_min, beta_max, self.n_noise_schedule) # [min, max]平均150个
+        self.noise_level = torch.cumprod(1 - self.noise_schedule, dim=0)  # 累积乘法
         
         nn_name = diff_params["name"]
         nn_args = diff_params["args"][nn_name]

@@ -68,7 +68,7 @@ def get_spectral_flux(audio_file_name):
     HOP_LENGTH = 441
     MADMOM_FPS = 30
     MADMOM_SR = HOP_LENGTH * MADMOM_FPS
-    sodf = madmom.features.onsets.SpectralOnsetProcessor(sample_rate=MADMOM_SR)
+    sodf = madmom.features.onsets.SpectralOnsetProcessor(sample_rate=MADMOM_SR) # 默认参数就是 spectral_flux
     spectral_flux = sodf(audio_file_name)
     return spectral_flux
 

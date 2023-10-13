@@ -37,9 +37,9 @@ if __name__ == "__main__":
         # 原作者提供的，已经删了
         checkpoint = '../pretrained_models/dance_LDA.ckpt'
         data_dir = '../data/motorica_dance'
-        wav_dir = '../data/motorica_dance/wav'
+        wav_dir = '../data/wav'
         basenames = np.loadtxt('../data/motorica_dance/gen_files.txt', dtype=str).tolist()
-        dest_dir = '../results/generated/dance_LDA'
+        dest_dir = '../results/generated/dance_LDA_raw'
     elif is_gesture:
         # 自己训练的手势
         checkpoint = 'I:/listen_denoise_action/pretrained_models/my_gesture_data/checkpoints/epoch=9-step=189440.ckpt'
