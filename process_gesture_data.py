@@ -256,7 +256,7 @@ def test_pipeline1():
     bvh_datas = [bvh_data]
 
     # pipeline
-    pipe = get_pipeline(False)
+    pipe = get_pipeline('GENEA')
     clips = transform(pipe, bvh_datas)
     my_bvh_datas = inverse_transform(pipe, clips)
 
@@ -277,7 +277,7 @@ def warmup_pipeline(dataset_root):
     bvh_data = bvh_parser.parse(skeleton_bvh)
     bvh_data.framerate = 1 / 30
     bvh_datas = [bvh_data]
-    pipeline = get_pipeline(False)
+    pipeline = get_pipeline('GENEA')
     transform(pipeline, bvh_datas)
     return pipeline
 
@@ -302,7 +302,7 @@ def test_pipeline2():
 
     # 模拟到pkl文件
     bvh_datas = [bvh_data]
-    pipe = get_pipeline(False)
+    pipe = get_pipeline('GENEA')
     mocap_datas = transform2pkl(pipe, bvh_datas)
     pkl_data = mocap_datas[0].values[motions_cols]
     # 模拟加载pkl到训练生成数据

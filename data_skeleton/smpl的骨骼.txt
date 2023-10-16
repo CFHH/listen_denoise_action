@@ -1,0 +1,24 @@
+pelvis
+	l_hip
+		l_knee
+			l_ankle
+				l_foot
+	r_hip
+		r_knee
+			r_ankle
+				r_foot
+	spine1
+		spine2
+			spine3
+				neck
+					head
+				l_collar
+					l_shoulder
+						l_elbow
+							l_wrist
+								l_hand
+				r_collar
+					r_shoulder
+						r_elbow
+							r_wrist
+								r_hand

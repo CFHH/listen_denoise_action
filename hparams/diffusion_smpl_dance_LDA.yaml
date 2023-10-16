@@ -2,14 +2,14 @@ Data:
   segment_length: 150
   style_index: [1]
   trim_edges: 300
-  styles_file: dance_styles.txt # todo
+  styles_file: dance_styles.txt
   traindata_filename: dance_train_files.txt
   testdata_filename: dance_test_files.txt
   input_modality: audio29_30fps
   output_modality: expmap_30fps
   input_feats_file: ch0_spec_beatact_features.txt
-  datapipe_filename: custom_inverse_transform # logging_mixin.py -- feats_to_bvh()
-  skeleton_type: GENEA
+  datapipe_filename: custom_inverse_transform
+  skeleton_type: smpl
   timestretch_prob: 0.2
   timestretch_factor: 0.1
 Diffusion:
@@ -76,11 +76,11 @@ Trainer:
     accelerator: cpu #gpu cpu
     devices: 1 #[0] 1
     accumulate_grad_batches: 1
-    default_root_dir: results/training/gesture_LDA
+    default_root_dir: results/training/smpl_dance_LDA
     gradient_clip_val: 25
     deterministic: false
     fast_dev_run: false
     max_epochs: 10
     min_epochs: 1
     precision: 32
-    resume_from_checkpoint: null #results/training/dance_LDA/lightning_logs/version_0/checkpoints/epoch=0-step=108150.ckpt
+    resume_from_checkpoint: null #results/training/smpl_dance_LDA/lightning_logs/version_0/checkpoints/epoch=0-step=108150.ckpt

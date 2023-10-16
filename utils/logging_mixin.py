@@ -19,21 +19,21 @@ from pymo.pipeline import get_pipeline, transform, transform2pkl, inverse_transf
 
 warmed_pipe = None
 expected_columns = 0
-def warmup_pipeline(dataset_root):
+def warmup_pipeline(dataset_root, skeleton_type):
     global warmed_pipe
     skeleton_bvh = os.path.join(dataset_root, 'skeleton.bvh')
     bvh_parser = BVHParser()
     bvh_data = bvh_parser.parse(skeleton_bvh)
     bvh_data.framerate = 1 / 30
     bvh_datas = [bvh_data]
-    warmed_pipe = get_pipeline(is_dance_skeleton=False)
+    warmed_pipe = get_pipeline(skeleton_type)
     transform(warmed_pipe, bvh_datas)
     return warmed_pipe
 
-def gesture_feats_to_bvh(pred_clips, dataset_root, from_train=False):
+def custom_feats_to_bvh(pred_clips, dataset_root, skeleton_type, from_train=False):
     global warmed_pipe, expected_columns
     if warmed_pipe is None:
-        warmup_pipeline(dataset_root)
+        warmup_pipeline(dataset_root, skeleton_type)
         bone_feature_filename = os.path.join(dataset_root, 'pose_features.expmap.txt')
         train_columns = np.loadtxt(bone_feature_filename, dtype=str).tolist()
         expected_columns = len(train_columns)
@@ -151,8 +151,8 @@ class LoggingMixin:
                     
         
     def feats_to_bvh(self, pred_clips):
-        if self.hparams.Data["datapipe_filename"] == 'inverse_transform_gesture':
-            return gesture_feats_to_bvh(pred_clips, self.hparams.dataset_root, from_train=True)
+        if self.hparams.Data["datapipe_filename"] == 'custom_inverse_transform':
+            return custom_feats_to_bvh(pred_clips, self.hparams.dataset_root, self.hparams.Data["skeleton_type"], from_train=True)
         #import pdb;pdb.set_trace()
         data_pipeline = jl.load(Path(self.hparams.dataset_root) / self.hparams.Data["datapipe_filename"])
         n_feats = data_pipeline["cnt"].n_features

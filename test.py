@@ -166,7 +166,7 @@ def test_pipeline():
     bvh_datas = [bvh_data]
 
     # pipeline
-    pipe = get_pipeline(True)
+    pipe = get_pipeline('default')
     clips = transform(pipe, bvh_datas)
     my_bvh_datas = inverse_transform(pipe, clips)
 

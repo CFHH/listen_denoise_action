@@ -2,22 +2,31 @@ from pymo.preprocessing import JointSelector, RootTransformer, MocapParameterize
 from sklearn.pipeline import Pipeline
 
 
-def get_pipeline(is_dance_skeleton):
-    # 作者的数据对应的骨骼
-    dance_joints = ['Spine', 'Spine1', 'Neck', 'Head',
-                    'RightShoulder', 'RightArm', 'RightForeArm', 'RightHand',
-                    'LeftShoulder', 'LeftArm', 'LeftForeArm', 'LeftHand',
-                    'RightUpLeg', 'RightLeg', 'RightFoot',
-                    'LeftUpLeg', 'LeftLeg', 'LeftFoot', 'reference']
-    # Trinity Speech-Gesture I\GENEA_Challenge_2020_data_release 的骨骼
-    gesture_joints = ['Spine', 'Spine1', 'Spine2', 'Spine3', 'Neck', 'Neck1', 'Head',
-                      'RightShoulder', 'RightArm', 'RightForeArm', 'RightHand',
-                      'LeftShoulder', 'LeftArm', 'LeftForeArm', 'LeftHand',
-                      'RightUpLeg', 'RightLeg', 'RightFoot',
-                      'LeftUpLeg', 'LeftLeg', 'LeftFoot', 'reference']
-    joints = gesture_joints
-    if is_dance_skeleton:
-        joints = dance_joints
+def get_pipeline(skeleton_type):
+    if skeleton_type == 'default':
+        # 作者的数据对应的骨骼
+        joints = ['Spine', 'Spine1', 'Neck', 'Head',
+                  'RightShoulder', 'RightArm', 'RightForeArm', 'RightHand',
+                  'LeftShoulder', 'LeftArm', 'LeftForeArm', 'LeftHand',
+                  'RightUpLeg', 'RightLeg', 'RightFoot',
+                  'LeftUpLeg', 'LeftLeg', 'LeftFoot',
+                  'reference']
+    elif skeleton_type == 'GENEA':
+        # Trinity Speech-Gesture I\GENEA_Challenge_2020_data_release 的骨骼
+        joints = ['Spine', 'Spine1', 'Spine2', 'Spine3', 'Neck', 'Neck1', 'Head',
+                  'RightShoulder', 'RightArm', 'RightForeArm', 'RightHand',
+                  'LeftShoulder', 'LeftArm', 'LeftForeArm', 'LeftHand',
+                  'RightUpLeg', 'RightLeg', 'RightFoot',
+                  'LeftUpLeg', 'LeftLeg', 'LeftFoot',
+                  'reference']
+    elif skeleton_type == 'smpl':
+        joints = ['pelvis',
+                  'l_hip', 'l_knee', 'l_ankle', 'l_foot',
+                  'r_hip', 'r_knee', 'r_ankle', 'r_foot',
+                  'spine1', 'spine2', 'spine3', 'neck', 'head',
+                  'l_collar', 'l_shoulder', 'l_elbow', 'l_wrist', 'l_hand',
+                  'r_collar', 'r_shoulder', 'r_elbow', 'r_wrist', 'r_hand',
+                  'reference']
 
     t1 = JointSelector(joints, include_root=True)
     t2 = RootTransformer('pos_rot_deltas', separate_root=False)

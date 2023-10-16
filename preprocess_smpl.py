@@ -3,6 +3,7 @@ import shutil
 import tqdm
 import glob
 import numpy as np
+import random
 from sklearn.preprocessing import StandardScaler
 import pickle as pkl
 from scipy import interpolate
@@ -53,19 +54,24 @@ def mirror(bvh_data):
     return bvh_data
 
 
-def process_motion(bvh_filename, motions_cols, save_path, all_files, process_mirror=True):
+def process_motion(bvh_filename, fps, motions_cols, save_path, all_files, process_mirror=True, genra=None):
     motion_name = os.path.basename(bvh_filename)
     motion_name = motion_name.split('.')[0]
 
-    # 跳过已经有的
-    temp_name = motion_name + '_gSP_00'
-    all_files.append(temp_name)
+    # 生成最后的文件名
+    temp_name = motion_name
+    if genra is not None:
+        temp_name = temp_name + genra + '_00'  # 模拟符合命名规范
+    if all_files is not None:
+        all_files.append(temp_name)
     save_name_1 = os.path.join(save_path, temp_name + '.expmap_30fps.pkl')
     if process_mirror:
-        temp_name = motion_name + '_gSP_00_mirrored'
-        all_files.append(temp_name)
+        temp_name = temp_name + '_mirrored'
+        if all_files is not None:
+            all_files.append(temp_name)
         save_name_2 = os.path.join(save_path, temp_name + '.expmap_30fps.pkl')
 
+    # 跳过已经有的
     if process_mirror:
         if os.path.isfile(save_name_1) and os.path.isfile(save_name_2):
             return motion_name
@@ -79,36 +85,20 @@ def process_motion(bvh_filename, motions_cols, save_path, all_files, process_mir
     bvh_parser = BVHParser()
     bvh_data = bvh_parser.parse(bvh_filename)
     # 折算成30fps
-    bvh_data.values = bvh_data.values[::2]
+    assert fps == 30
+    if fps != 30:
+        #bvh_data.values = bvh_data.values[::2]  # TODO 具体情况具体改吧，肯定不可能去插值的
+        pass
     bvh_data.framerate = 1 / 30
     # 初始站位归零
     bvh_data.values['Hips_Xposition'] -= bvh_data.values['Hips_Xposition'][0]
     bvh_data.values['Hips_Zposition'] -= bvh_data.values['Hips_Zposition'][0]
-    # 保存一下
+
+    # 转成pkl数据
     bvh_datas = [bvh_data]
-
-    use_v1 = False
-    if use_v1:
-        # 算alpha、beta、gamma参数
-        parameterizer = MocapParameterizer('expmap')
-        expmap_datas = parameterizer.fit_transform(bvh_datas)
-        expmap_data = expmap_datas[0]
-        full_pkl_data = expmap_data.values
-
-        # TODO dxposition、dzposition、dyrotation
-        root_transformer = RootTransformer(roottransformer_method, separate_root=roottransformer_separate_root)
-        trans_datas = root_transformer.fit_transform(bvh_datas)
-        trans_data = trans_datas[0]
-        if roottransformer_method == 'abdolute_translation_deltas':
-            full_pkl_data['Hips_dXposition'] = trans_data.values['Hips_dXposition']
-            full_pkl_data['Hips_dZposition'] = trans_data.values['Hips_dZposition']
-
-        # 实际训练的的骨骼
-        panda_data = full_pkl_data[motions_cols]
-    else:
-        pipe = get_pipeline('GENEA')
-        mocap_datas = transform2pkl(pipe, bvh_datas)
-        panda_data = mocap_datas[0].values[motions_cols]
+    pipe = get_pipeline('smpl')
+    mocap_datas = transform2pkl(pipe, bvh_datas)
+    panda_data = mocap_datas[0].values[motions_cols]
 
     # 写pkl
     with open(save_name_1, 'wb') as pkl_f1:
@@ -171,46 +161,96 @@ def process_motion(bvh_filename, motions_cols, save_path, all_files, process_mir
     return motion_name
 
 
-def process_paired_dataset():
-    save_path = './data/my_gesture_data/'
-
-    bone_feature_filename = './data/my_gesture_data/pose_features.expmap.txt'
-    motions_cols = np.loadtxt(bone_feature_filename, dtype=str).tolist()
-
+def process_dataset():
     """
+    用一份新骨骼需要做的事情：
+    1、skeleton.bvh
+    2、pose_features.expmap.txt
+    3、pipeline.py, get_pipeline()
+    需要重新定义一份骨骼
+    骨骼旋转顺序到处要改
+    根骨骼名字pelvis
+
+    命名规范
+    预处理后的动作和音频数据的文件名，第一个_后是风格，最后一个_后是00；如果是镜像，再接一个_mirrored
+    用于eval的音频文件，必须以_风格结尾
+    """
+    # 原始数据集
+    bvh_path = 'I:/vq_action/data/1_aligned/skjx/bvh_bpm0_fps30/'
+    wav_path = 'I:/vq_action/data/1_aligned/skjx/music-aligned/'
+    fps = 30
+    # 训练数据集
+    dataset_root = './data/smpl_dance/'
+    save_path = dataset_root
+
+    # 拆分数据集(skjx共255首，225首用来train，20首用来test，10首用来eval)
+    motion_files = glob.glob(os.path.join(bvh_path, '*.bvh'))
+    motion_cnt = len(motion_files)
+    eval_cnt = int(motion_cnt * 0.04)
+    test_cnt = int(motion_cnt * 0.08)
+    train_cnt = motion_cnt - test_cnt - eval_cnt
+    test_eval_files = random.sample(motion_files, eval_cnt + test_cnt)
+    for i in test_eval_files:
+        motion_files.remove(i)
+    train_files = motion_files
+    train_files.sort()
+    test_files = test_eval_files[0:test_cnt]
+    test_files.sort()
+    eval_files = test_eval_files[test_cnt:]
+    eval_files.sort()
+
+    #
+    bone_feature_filename = os.path.join(dataset_root, 'pose_features.expmap.txt')
+    motion_columns = np.loadtxt(bone_feature_filename, dtype=str).tolist()
+
+    def _bvh_filename_2_wav_filename(bvh_filename):
+        base_name = os.path.basename(bvh_filename)
+        base_name = base_name.split('.')[0]
+        wav_filename = os.path.join(wav_path, f'{base_name}.wav')
+        return wav_filename, base_name
+
+    # train
     all_files = []
-    bvh_filename = './data/my_gesture_data/GENEA/test/motion/TestSeq010.bvh'
-    motion_name = process_motion(bvh_filename, motions_cols, save_path, all_files, process_mirror=False)
-    """
+    for bvh_filename in tqdm.tqdm(train_files):
+        print("Process TRAIN: %s" % bvh_filename)
+        wav_filename, base_name = _bvh_filename_2_wav_filename(bvh_filename)
+        if '_' in base_name:
+            continue  # 没法去模拟符合命名规范了
+        process_motion(bvh_filename, fps, motion_columns, save_path, all_files, process_mirror=True, genra='_gOK')
+        process_audio(wav_filename, save_path, None, align_to_raw_data=False, process_mirror=True, genra='_gSP')
+        break
+    save_list_name = os.path.join(save_path, 'dance_train_files.txt')
+    with open(save_list_name, 'w') as f:
+        for line in all_files:
+            f.write(line + '\n')
+    shutil.copy(save_list_name, os.path.join(save_path, 'dance_train_files_kth.txt'))
 
-    sub_dataset_names = ['test', 'train']
-    for sub_dataset_name in sub_dataset_names:
-        all_files = []
-        motion_files = glob.glob(f'./data/my_gesture_data/GENEA/{sub_dataset_name}/motion/*.bvh')
-        motion_files.sort()
-        for bvh_filename in tqdm.tqdm(motion_files):
-            print("Process %s" % bvh_filename)
-            motion_name = process_motion(bvh_filename, motions_cols, save_path, all_files, process_mirror=False)
-            audio_file_name = f'./data/my_gesture_data/GENEA/{sub_dataset_name}/audio/{motion_name}.wav'
-            process_audio(audio_file_name, save_path, None, align_to_raw_data=False, process_mirror=True, genra='_gSP')
-            #break
+    # test
+    all_files = []
+    for bvh_filename in tqdm.tqdm(test_files):
+        print("Process TEST: %s" % bvh_filename)
+        wav_filename, base_name = _bvh_filename_2_wav_filename(bvh_filename)
+        if '_' in base_name:
+            continue
+        break
+    save_list_name = os.path.join(save_path, 'dance_test_files.txt')
+    with open(save_list_name, 'w') as f:
+        for line in all_files:
+            f.write(line + '\n')
+    shutil.copy(save_list_name, os.path.join(save_path, 'dance_test_files_kth.txt'))
 
-        save_list_name = os.path.join(save_path, f'dance_{sub_dataset_name}_files.txt')
-        with open(save_list_name, 'w') as f:
-            for line in all_files:
-                f.write(line + '\n')
-        shutil.copy(save_list_name, os.path.join(save_path, f'dance_{sub_dataset_name}_files_kth.txt'))
+    # eval
+    all_files = []
+    for bvh_filename in tqdm.tqdm(eval_files):
+        print("Process EVAL: %s" % bvh_filename)
+        wav_filename, base_name = _bvh_filename_2_wav_filename(bvh_filename)
+        if '_' in base_name:
+            continue
+        break
 
     return
 
 
-def process_new_dataset():
-    save_path = './data/my_speech/'
-    audio_file_name = './data/my_speech/NaturalTalking04.wav'
-    process_audio(audio_file_name, save_path, None, align_to_raw_data=False, process_mirror=False, genra='_gSP')
-
-
 
 if __name__ == "__main__":
-    process_paired_dataset()
-    #process_new_dataset()
+    process_dataset()
