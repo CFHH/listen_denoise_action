@@ -14,7 +14,7 @@ from pymo.data import MocapData
 from pymo.parsers import BVHParser
 from pymo.writers import BVHWriter
 from pymo.preprocessing import MocapParameterizer, RootTransformer
-from utils.logging_mixin import gesture_feats_to_bvh, roottransformer_method, roottransformer_separate_root
+from utils.logging_mixin import custom_feats_to_bvh, roottransformer_method, roottransformer_separate_root
 from gen_music_pkl import process_audio
 from pymo.pipeline import get_pipeline, transform, transform2pkl, inverse_transform
 
@@ -143,7 +143,7 @@ def process_motion(bvh_filename, motions_cols, save_path, all_files, process_mir
             # pkl_data转回bvh
             my_clips = reload_panda_data.values[np.newaxis, ...]
             dataset_root = './data/my_gesture_data/'
-            my_bvh_datas = gesture_feats_to_bvh(my_clips, dataset_root)
+            my_bvh_datas = custom_feats_to_bvh(my_clips, dataset_root, 'GENEA')
             my_bvh_data = my_bvh_datas[0]
             #my_bvh_diff = my_bvh_data.values[bvh_data.values.columns].values - bvh_data.values[bvh_data.values.columns].values
             my_bvh_data.values['Hips_Xposition'] += bvh_data.values['Hips_Xposition'][0] - my_bvh_data.values['Hips_Xposition'][0]
@@ -159,7 +159,7 @@ def process_motion(bvh_filename, motions_cols, save_path, all_files, process_mir
             # pkl_data转回bvh
             my_clips = reload_panda_data.values[np.newaxis, ...]
             dataset_root = './data/my_gesture_data/'
-            my_bvh_datas = gesture_feats_to_bvh(my_clips, dataset_root)
+            my_bvh_datas = custom_feats_to_bvh(my_clips, dataset_root, 'GENEA')
             my_bvh_data = my_bvh_datas[0]
             # my_bvh_diff = my_bvh_data.values[bvh_data.values.columns].values - bvh_data.values[bvh_data.values.columns].values
             my_bvh_data.values['Hips_Xposition'] += bvh_data.values['Hips_Xposition'][0] - \
@@ -205,12 +205,12 @@ def process_paired_dataset():
 
 
 def process_new_dataset():
-    save_path = './data/my_speech/'
-    audio_file_name = './data/my_speech/NaturalTalking04.wav'
+    save_path = './data/my_speech_for_eval/'
+    audio_file_name = './data/my_speech_for_eval/rap小孔小孩demo2copy.wav'
     process_audio(audio_file_name, save_path, None, align_to_raw_data=False, process_mirror=False, genra='_gSP')
 
 
 
 if __name__ == "__main__":
-    process_paired_dataset()
-    #process_new_dataset()
+    #process_paired_dataset()
+    process_new_dataset()

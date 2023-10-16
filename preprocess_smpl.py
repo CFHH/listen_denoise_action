@@ -15,7 +15,7 @@ from pymo.data import MocapData
 from pymo.parsers import BVHParser
 from pymo.writers import BVHWriter
 from pymo.preprocessing import MocapParameterizer, RootTransformer
-from utils.logging_mixin import gesture_feats_to_bvh, roottransformer_method, roottransformer_separate_root
+from utils.logging_mixin import custom_feats_to_bvh, roottransformer_method, roottransformer_separate_root
 from gen_music_pkl import process_audio
 from pymo.pipeline import get_pipeline, transform, transform2pkl, inverse_transform
 
@@ -133,7 +133,7 @@ def process_motion(bvh_filename, fps, motions_cols, save_path, all_files, proces
             # pkl_data转回bvh
             my_clips = reload_panda_data.values[np.newaxis, ...]
             dataset_root = './data/my_gesture_data/'
-            my_bvh_datas = gesture_feats_to_bvh(my_clips, dataset_root)
+            my_bvh_datas = gesture_feats_to_bvh(my_clips, dataset_root, 'smpl')
             my_bvh_data = my_bvh_datas[0]
             #my_bvh_diff = my_bvh_data.values[bvh_data.values.columns].values - bvh_data.values[bvh_data.values.columns].values
             my_bvh_data.values['Hips_Xposition'] += bvh_data.values['Hips_Xposition'][0] - my_bvh_data.values['Hips_Xposition'][0]
@@ -149,7 +149,7 @@ def process_motion(bvh_filename, fps, motions_cols, save_path, all_files, proces
             # pkl_data转回bvh
             my_clips = reload_panda_data.values[np.newaxis, ...]
             dataset_root = './data/my_gesture_data/'
-            my_bvh_datas = gesture_feats_to_bvh(my_clips, dataset_root)
+            my_bvh_datas = gesture_feats_to_bvh(my_clips, dataset_root, 'smpl')
             my_bvh_data = my_bvh_datas[0]
             # my_bvh_diff = my_bvh_data.values[bvh_data.values.columns].values - bvh_data.values[bvh_data.values.columns].values
             my_bvh_data.values['Hips_Xposition'] += bvh_data.values['Hips_Xposition'][0] - \
@@ -167,6 +167,10 @@ def process_dataset():
     1、skeleton.bvh
     2、pose_features.expmap.txt
     3、pipeline.py, get_pipeline()
+    4、*.yaml
+    5、logging_mixin.py, custom_feats_to_bvh
+    6、镜像算法
+
     需要重新定义一份骨骼
     骨骼旋转顺序到处要改
     根骨骼名字pelvis
