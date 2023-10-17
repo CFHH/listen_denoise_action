@@ -153,6 +153,8 @@ class LoggingMixin:
     def feats_to_bvh(self, pred_clips):
         if self.hparams.Data["datapipe_filename"] == 'custom_inverse_transform':
             return custom_feats_to_bvh(pred_clips, self.hparams.dataset_root, self.hparams.Data["skeleton_type"], from_train=True)
+        elif self.hparams.Data["datapipe_filename"] == 'inverse_transform_gesture':  # 兼容之前已经训练完的模型
+            return custom_feats_to_bvh(pred_clips, self.hparams.dataset_root, 'GENEA', from_train=True)
         #import pdb;pdb.set_trace()
         data_pipeline = jl.load(Path(self.hparams.dataset_root) / self.hparams.Data["datapipe_filename"])
         n_feats = data_pipeline["cnt"].n_features
