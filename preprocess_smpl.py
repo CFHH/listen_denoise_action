@@ -26,23 +26,40 @@ def write_bvh(bvh_data, fname):
         writer.write(bvh_data, f)
 
 
-def mirror(bvh_data):
-    all_joints = ['RightFoot', 'RightLeg', 'RightUpLeg',
-                  'LeftFoot', 'LeftLeg', 'LeftUpLeg',
-                  'RightHand', 'RightForeArm', 'RightArm', 'RightShoulder',
-                  'LeftHand', 'LeftForeArm', 'LeftArm', 'LeftShoulder',
-                  'Head', 'Neck1', 'Neck', 'Spine3', 'Spine2', 'Spine1', 'Spine', 'Hips']
-    left_right_joints = ['Foot', 'Leg', 'UpLeg', 'Hand', 'ForeArm', 'Arm', 'Shoulder']
+def mirror(bvh_data, skeleton_type):
+    if skeleton_type == 'default':
+        pass
+    elif skeleton_type == 'GENEA':
+        all_joints = ['RightFoot', 'RightLeg', 'RightUpLeg',
+                      'LeftFoot', 'LeftLeg', 'LeftUpLeg',
+                      'RightHand', 'RightForeArm', 'RightArm', 'RightShoulder',
+                      'LeftHand', 'LeftForeArm', 'LeftArm', 'LeftShoulder',
+                      'Head', 'Neck1', 'Neck', 'Spine3', 'Spine2', 'Spine1', 'Spine', 'Hips']
+        left_right_joints = ['Foot', 'Leg', 'UpLeg', 'Hand', 'ForeArm', 'Arm', 'Shoulder']
+        root_joint = 'Hips'
+        str_left = 'Left'
+        str_right = 'Right'
+    elif skeleton_type == 'smpl':
+        all_joints = ['pelvis',
+                      'l_hip', 'l_knee', 'l_ankle', 'l_foot',
+                      'r_hip', 'r_knee', 'r_ankle', 'r_foot',
+                      'spine1', 'spine2', 'spine3', 'neck', 'head',
+                      'l_collar', 'l_shoulder', 'l_elbow', 'l_wrist', 'l_hand',
+                      'r_collar', 'r_shoulder', 'r_elbow', 'r_wrist', 'r_hand']
+        left_right_joints = ['hip', 'knee', 'ankle', 'foot', 'collar', 'shoulder', 'elbow', 'wrist', 'hand']
+        root_joint = 'pelvis'
+        str_left = 'l_'
+        str_right = 'r_'
 
     # 平移：x=-x，z=-z，y不变
-    bvh_data.values['Hips_Xposition'] *= -1
-    bvh_data.values['Hips_Zposition'] *= -1
+    bvh_data.values[f'{root_joint}_Xposition'] *= -1
+    #bvh_data.values[f'{root_joint}_Zposition'] *= -1  # TODO vq_action的需要再验证一次
 
     # 旋转：1、左右互换；2、所有节点，x旋转不变，y旋转变相反数，z旋转变相反数
     for name in left_right_joints:
         for r in ['_Xrotation', '_Yrotation', '_Zrotation']:
-            left_key = 'Left' + name + r
-            right_key = 'Right' + name + r
+            left_key = str_left + name + r
+            right_key = str_right + name + r
             temp = bvh_data.values[left_key]
             bvh_data.values[left_key] = bvh_data.values[right_key]
             bvh_data.values[right_key] = temp
@@ -54,7 +71,7 @@ def mirror(bvh_data):
     return bvh_data
 
 
-def process_motion(bvh_filename, fps, motions_cols, save_path, all_files, process_mirror=True, genra=None):
+def process_motion(bvh_filename, fps, motions_cols, dataset_root, save_path, all_files, process_mirror=True, genra=None):
     motion_name = os.path.basename(bvh_filename)
     motion_name = motion_name.split('.')[0]
 
@@ -74,12 +91,14 @@ def process_motion(bvh_filename, fps, motions_cols, save_path, all_files, proces
     # 跳过已经有的
     if process_mirror:
         if os.path.isfile(save_name_1) and os.path.isfile(save_name_2):
-            return motion_name
+            return
     else:
         if os.path.isfile(save_name_1):
-            return motion_name
+            return
 
     ####################################################################################################################
+    skeleton_type = 'smpl'
+    root_joint = 'pelvis'
 
     # 加载bvh文件
     bvh_parser = BVHParser()
@@ -91,12 +110,12 @@ def process_motion(bvh_filename, fps, motions_cols, save_path, all_files, proces
         pass
     bvh_data.framerate = 1 / 30
     # 初始站位归零
-    bvh_data.values['Hips_Xposition'] -= bvh_data.values['Hips_Xposition'][0]
-    bvh_data.values['Hips_Zposition'] -= bvh_data.values['Hips_Zposition'][0]
+    bvh_data.values[f'{root_joint}_Xposition'] -= bvh_data.values[f'{root_joint}_Xposition'][0]
+    bvh_data.values[f'{root_joint}_Zposition'] -= bvh_data.values[f'{root_joint}_Zposition'][0]
 
     # 转成pkl数据
     bvh_datas = [bvh_data]
-    pipe = get_pipeline('smpl')
+    pipe = get_pipeline(skeleton_type)
     mocap_datas = transform2pkl(pipe, bvh_datas)
     panda_data = mocap_datas[0].values[motions_cols]
 
@@ -104,61 +123,47 @@ def process_motion(bvh_filename, fps, motions_cols, save_path, all_files, proces
     with open(save_name_1, 'wb') as pkl_f1:
         pkl.dump(panda_data, pkl_f1)
 
+    dotest = False
+    if dotest:
+        write_bvh(bvh_data, f'./{motion_name}_raw.bvh')
+        # pkl_data转回bvh
+        with open(save_name_1, 'rb') as ff:
+            reload_panda_data = pkl.load(ff).astype('float32')
+        my_clips = reload_panda_data.values[np.newaxis, ...]
+        my_bvh_datas = custom_feats_to_bvh(my_clips, dataset_root, skeleton_type)
+        my_bvh_data = my_bvh_datas[0]
+        my_bvh_data.values[f'{root_joint}_Xposition'] -= my_bvh_data.values[f'{root_joint}_Xposition'][0]
+        my_bvh_data.values[f'{root_joint}_Zposition'] -= my_bvh_data.values[f'{root_joint}_Zposition'][0]
+        write_bvh(my_bvh_data, f'./{motion_name}_pkl.bvh')
+
     ####################################################################################################################
 
     # 镜像
     if process_mirror:
-        mirror_bvh_data = mirror(bvh_data)
+        mirror_bvh_data = mirror(bvh_data, skeleton_type)
         mirror_bvh_datas = [mirror_bvh_data]
-        if use_v1:
-            pass
-        else:
-            mirror_mocap_datas = transform2pkl(pipe, mirror_bvh_datas)
-            mirror_panda_data = mirror_mocap_datas[0].values[motions_cols]
+
+        mirror_mocap_datas = transform2pkl(pipe, mirror_bvh_datas)
+        mirror_panda_data = mirror_mocap_datas[0].values[motions_cols]
 
         with open(save_name_2, 'wb') as pkl_f2:
             pkl.dump(mirror_panda_data, pkl_f2)
 
-    ####################################################################################################################
-
-    dotest = False
-    if dotest:
-        if process_mirror:
-            write_bvh(mirror_bvh_data, f'./{motion_name}_mirror_raw.bvh') # 这个是对的
-            # 加载pkl
+        if dotest:
+            write_bvh(mirror_bvh_data, f'./{motion_name}_mirror_raw.bvh')
+            # pkl_data转回bvh
             with open(save_name_2, 'rb') as ff:
                 reload_panda_data = pkl.load(ff).astype('float32')
-            #diff = reload_panda_data - panda_data
-
-            # pkl_data转回bvh
             my_clips = reload_panda_data.values[np.newaxis, ...]
-            dataset_root = './data/my_gesture_data/'
-            my_bvh_datas = gesture_feats_to_bvh(my_clips, dataset_root, 'smpl')
+            my_bvh_datas = custom_feats_to_bvh(my_clips, dataset_root, skeleton_type)
             my_bvh_data = my_bvh_datas[0]
-            #my_bvh_diff = my_bvh_data.values[bvh_data.values.columns].values - bvh_data.values[bvh_data.values.columns].values
-            my_bvh_data.values['Hips_Xposition'] += bvh_data.values['Hips_Xposition'][0] - my_bvh_data.values['Hips_Xposition'][0]
-            my_bvh_data.values['Hips_Zposition'] += bvh_data.values['Hips_Zposition'][0] - my_bvh_data.values['Hips_Zposition'][0]
-            write_bvh(my_bvh_data, f'./{motion_name}_mirror_pkl.bvh') # 这个不一样，所以inverse还是有问题
-        else:
-            write_bvh(bvh_data, f'./{motion_name}_raw.bvh')
-            # 加载pkl
-            with open(save_name_1, 'rb') as ff:
-                reload_panda_data = pkl.load(ff).astype('float32')
-            # diff = reload_panda_data - panda_data
+            my_bvh_data.values[f'{root_joint}_Xposition'] -= my_bvh_data.values[f'{root_joint}_Xposition'][0]
+            my_bvh_data.values[f'{root_joint}_Zposition'] -= my_bvh_data.values[f'{root_joint}_Zposition'][0]
+            write_bvh(my_bvh_data, f'./{motion_name}_mirror_pkl.bvh')
 
-            # pkl_data转回bvh
-            my_clips = reload_panda_data.values[np.newaxis, ...]
-            dataset_root = './data/my_gesture_data/'
-            my_bvh_datas = gesture_feats_to_bvh(my_clips, dataset_root, 'smpl')
-            my_bvh_data = my_bvh_datas[0]
-            # my_bvh_diff = my_bvh_data.values[bvh_data.values.columns].values - bvh_data.values[bvh_data.values.columns].values
-            my_bvh_data.values['Hips_Xposition'] += bvh_data.values['Hips_Xposition'][0] - \
-                                                    my_bvh_data.values['Hips_Xposition'][0]
-            my_bvh_data.values['Hips_Zposition'] += bvh_data.values['Hips_Zposition'][0] - \
-                                                    my_bvh_data.values['Hips_Zposition'][0]
-            write_bvh(my_bvh_data, f'./{motion_name}_pkl.bvh')  # 这个不一样，所以inverse还是有问题
+    ####################################################################################################################
 
-    return motion_name
+    return
 
 
 def process_dataset():
@@ -186,6 +191,7 @@ def process_dataset():
     # 训练数据集
     dataset_root = './data/smpl_dance/'
     save_path = dataset_root
+    eval_path = './data/eval_for_smpl_dance/'
 
     # 拆分数据集(skjx共255首，225首用来train，20首用来test，10首用来eval)
     motion_files = glob.glob(os.path.join(bvh_path, '*.bvh'))
@@ -213,6 +219,7 @@ def process_dataset():
         wav_filename = os.path.join(wav_path, f'{base_name}.wav')
         return wav_filename, base_name
 
+    genra = '_gOK'
     # train
     all_files = []
     for bvh_filename in tqdm.tqdm(train_files):
@@ -220,9 +227,9 @@ def process_dataset():
         wav_filename, base_name = _bvh_filename_2_wav_filename(bvh_filename)
         if '_' in base_name:
             continue  # 没法去模拟符合命名规范了
-        process_motion(bvh_filename, fps, motion_columns, save_path, all_files, process_mirror=True, genra='_gOK')
-        process_audio(wav_filename, save_path, None, align_to_raw_data=False, process_mirror=True, genra='_gSP')
-        break
+        process_motion(bvh_filename, fps, motion_columns, dataset_root, save_path, all_files, process_mirror=True, genra=genra)
+        process_audio(wav_filename, save_path, None, align_to_raw_data=False, process_mirror=True, genra=genra)
+        #break
     save_list_name = os.path.join(save_path, 'dance_train_files.txt')
     with open(save_list_name, 'w') as f:
         for line in all_files:
@@ -236,7 +243,9 @@ def process_dataset():
         wav_filename, base_name = _bvh_filename_2_wav_filename(bvh_filename)
         if '_' in base_name:
             continue
-        break
+        process_motion(bvh_filename, fps, motion_columns, dataset_root, save_path, all_files, process_mirror=True, genra=genra)
+        process_audio(wav_filename, save_path, None, align_to_raw_data=False, process_mirror=True, genra=genra)
+        #break
     save_list_name = os.path.join(save_path, 'dance_test_files.txt')
     with open(save_list_name, 'w') as f:
         for line in all_files:
@@ -250,7 +259,17 @@ def process_dataset():
         wav_filename, base_name = _bvh_filename_2_wav_filename(bvh_filename)
         if '_' in base_name:
             continue
-        break
+        copy_file_name = os.path.join(eval_path, f'{base_name}{genra}.wav')
+        if not os.path.isfile(copy_file_name):
+            shutil.copy(wav_filename, copy_file_name)
+        process_audio(copy_file_name, eval_path, all_files, align_to_raw_data=False, process_mirror=False, genra='')
+        #break
+    save_list_name = os.path.join(eval_path, 'gen_files.txt')
+    with open(save_list_name, 'w') as f:
+        for line in all_files:
+            f.write(line + '\n')
+
+    # TODO 手工操作，把gen_files.txt里的相关文件从dataset_root里删除，不删其实也没事
 
     return
 

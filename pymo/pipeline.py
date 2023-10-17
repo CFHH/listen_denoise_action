@@ -11,6 +11,7 @@ def get_pipeline(skeleton_type):
                   'RightUpLeg', 'RightLeg', 'RightFoot',
                   'LeftUpLeg', 'LeftLeg', 'LeftFoot',
                   'reference']
+        root_joint = 'Hips'  # joints里不含这个
     elif skeleton_type == 'GENEA':
         # Trinity Speech-Gesture I\GENEA_Challenge_2020_data_release 的骨骼
         joints = ['Spine', 'Spine1', 'Spine2', 'Spine3', 'Neck', 'Neck1', 'Head',
@@ -19,19 +20,20 @@ def get_pipeline(skeleton_type):
                   'RightUpLeg', 'RightLeg', 'RightFoot',
                   'LeftUpLeg', 'LeftLeg', 'LeftFoot',
                   'reference']
+        root_joint = 'Hips'
     elif skeleton_type == 'smpl':
-        joints = ['pelvis',
-                  'l_hip', 'l_knee', 'l_ankle', 'l_foot',
+        joints = ['l_hip', 'l_knee', 'l_ankle', 'l_foot',
                   'r_hip', 'r_knee', 'r_ankle', 'r_foot',
                   'spine1', 'spine2', 'spine3', 'neck', 'head',
                   'l_collar', 'l_shoulder', 'l_elbow', 'l_wrist', 'l_hand',
                   'r_collar', 'r_shoulder', 'r_elbow', 'r_wrist', 'r_hand',
                   'reference']
+        root_joint = 'pelvis'
 
     t1 = JointSelector(joints, include_root=True)
     t2 = RootTransformer('pos_rot_deltas', separate_root=False)
     t3 = MocapParameterizer('expmap', ref_pose=None)
-    t4 = ConstantsRemover()
+    t4 = ConstantsRemover(eps=1e-9)  # TODO 默认的1e-6会把smpl的l_foot/r_foot/l_hand/r_hand也删掉，其实这个类的功能，应该是删掉根节点的XZposition
     t5 = FeatureCounter()
     t6 = Numpyfier()  # 从这个的self.org_mocap_.values.columns获得列表，存入pose_features.expmap.txt
 
