@@ -73,8 +73,8 @@ num_dataloader_workers: 4
 pruning_amount: 0.0
 quantization: false
 Trainer:
-    accelerator: cpu #gpu cpu
-    devices: 1 #[0] 1
+    accelerator: gpu #gpu cpu
+    devices: [0] #[0] 1
     accumulate_grad_batches: 1
     default_root_dir: results/training/smpl_dance_LDA
     gradient_clip_val: 25
