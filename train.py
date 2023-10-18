@@ -52,6 +52,10 @@ if __name__ == "__main__":
     python train.py "./data/my_gesture_data" "./hparams/diffusion_gesture_LDA.yaml"
     nohup python train.py "./data/my_gesture_data" "./hparams/diffusion_gesture_LDA.yaml" > logtrain1.log 2>&1 &
     
+    SMPL
+    python train.py "./data/smpl_dance" "./hparams/diffusion_smpl_dance_LDA.yaml"
+    nohup python train.py "./data/smpl_dance" "./hparams/diffusion_smpl_dance_LDA.yaml" > logtrain1.log 2>&1 &
+    
     以下不行
     python train.py --dataset_root "./data" --hparams_file "./hparams/diffusion_dance_LDA.yaml"
     python train.py dataset_root="./data" hparams_file="./hparams/diffusion_dance_LDA.yaml"
