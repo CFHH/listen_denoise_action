@@ -18,6 +18,7 @@ from pymo.preprocessing import MocapParameterizer, RootTransformer
 from utils.logging_mixin import custom_feats_to_bvh, roottransformer_method, roottransformer_separate_root
 from gen_music_pkl import process_audio
 from pymo.pipeline import get_pipeline, transform, transform2pkl, inverse_transform
+import codecs
 
 
 def write_bvh(bvh_data, fname):
@@ -210,6 +211,7 @@ def process_dataset():
     eval_files.sort()
 
     #
+    encoder = codecs.getincrementalencoder('utf-8')()
     bone_feature_filename = os.path.join(dataset_root, 'pose_features.expmap.txt')
     motion_columns = np.loadtxt(bone_feature_filename, dtype=str).tolist()
 
@@ -231,9 +233,11 @@ def process_dataset():
         process_audio(wav_filename, save_path, None, align_to_raw_data=False, process_mirror=True, genra=genra)
         #break
     save_list_name = os.path.join(save_path, 'dance_train_files.txt')
-    with open(save_list_name, 'w') as f:
+    with open(save_list_name, 'wb') as f:
         for line in all_files:
-            f.write(line + '\n')
+            line = line + '\n'
+            data = encoder.encode(line)
+            f.write(data)
     shutil.copy(save_list_name, os.path.join(save_path, 'dance_train_files_kth.txt'))
 
     # test
@@ -247,9 +251,11 @@ def process_dataset():
         process_audio(wav_filename, save_path, None, align_to_raw_data=False, process_mirror=True, genra=genra)
         #break
     save_list_name = os.path.join(save_path, 'dance_test_files.txt')
-    with open(save_list_name, 'w') as f:
+    with open(save_list_name, 'wb') as f:
         for line in all_files:
-            f.write(line + '\n')
+            line = line + '\n'
+            data = encoder.encode(line)
+            f.write(data)
     shutil.copy(save_list_name, os.path.join(save_path, 'dance_test_files_kth.txt'))
 
     # eval
@@ -265,15 +271,37 @@ def process_dataset():
         process_audio(copy_file_name, eval_path, all_files, align_to_raw_data=False, process_mirror=False, genra='')
         #break
     save_list_name = os.path.join(eval_path, 'gen_files.txt')
-    with open(save_list_name, 'w') as f:
+    with open(save_list_name, 'wb') as f:
         for line in all_files:
-            f.write(line + '\n')
+            line = line + '\n'
+            data = encoder.encode(line)
+            f.write(data)
 
     # TODO 手工操作，把gen_files.txt里的相关文件从dataset_root里删除，不删其实也没事
 
     return
 
 
+def change_file_encoding():
+    filename = './data/smpl_dance/dance_train_files.txt'
+    filename = './data/smpl_dance/dance_test_files.txt'
+    filename = './data/eval_for_smpl_dance/gen_files.txt'
+    with open(filename) as f:
+        all_files = f.readlines()
+
+    encoder = codecs.getincrementalencoder('utf-8')()
+    save_list_name = './test.txt'
+    with open(save_list_name, 'wb') as f:
+        for line in all_files:
+            data = encoder.encode(line)
+            f.write(data)
+
+    with open(save_list_name, encoding='utf-8') as f:
+        files = f.readlines()
+
+    return
+
 
 if __name__ == "__main__":
-    process_dataset()
+    change_file_encoding()
+    #process_dataset()
