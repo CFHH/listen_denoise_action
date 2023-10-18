@@ -33,7 +33,9 @@ def get_pipeline(skeleton_type):
     t1 = JointSelector(joints, include_root=True)
     t2 = RootTransformer('pos_rot_deltas', separate_root=False)
     t3 = MocapParameterizer('expmap', ref_pose=None)
-    t4 = ConstantsRemover(eps=1e-9)  # TODO 默认的1e-6会把smpl的l_foot/r_foot/l_hand/r_hand也删掉，其实这个类的功能，应该是删掉根节点的XZposition
+    # TODO 默认的1e-6会把smpl的l_foot/r_foot/l_hand/r_hand也删掉，其实这个类的功能，应该是删掉根节点的XZposition
+    #      牵扯的修改还有 motion_dataset.py 里的assert_not_const(self, data)
+    t4 = ConstantsRemover(eps=1e-9)
     t5 = FeatureCounter()
     t6 = Numpyfier()  # 从这个的self.org_mocap_.values.columns获得列表，存入pose_features.expmap.txt
 

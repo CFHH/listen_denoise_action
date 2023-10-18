@@ -175,7 +175,7 @@ class MotionDataset(torch.utils.data.Dataset):
         return
         
     def assert_not_const(self, data):
-        eps = 1e-6
+        eps = 1e-9  # TODO 1e-6
         assert((data.std(axis=0)<eps).sum()==0)
     
     def fit_scalers(self):
