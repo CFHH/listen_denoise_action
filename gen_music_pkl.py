@@ -297,7 +297,7 @@ def process_raw_dataset():
 def process_new_dataset():
     save_path = './data/my_wav/'
     all_files = []
-    music_files = glob.glob('./data/my_wav/*.wav')
+    music_files = glob.glob('./data/eval_for_smpl_dance/*.wav')
     music_files.sort()
     for file_name in tqdm.tqdm(music_files):
         print("Process %s" % file_name)

@@ -3,6 +3,7 @@ import numpy as np
 from pytorch_lightning import seed_everything
 from models.LightningModel import LitLDA
 import scipy.io.wavfile as wav
+import librosa
 from synthesize import do_synthesize, get_cond
 
 
@@ -30,23 +31,45 @@ def exec_cmd(cmd):
     return text
 
 
+def files_to_list(filename):
+    with open(filename, encoding='utf-8') as f:
+        files = f.readlines()
+    files = [f.rstrip() for f in files]
+    return files
+
+
+def get_music_duration(file_name):
+    FPS = 60
+    HOP_LENGTH = 512
+    SR = FPS * HOP_LENGTH
+    data, _ = librosa.load(file_name, sr=SR)
+    seconds = data.shape[0] / SR
+    return seconds
+
+
 if __name__ == "__main__":
-    use_raw_data = False
-    is_gesture = True
-    if use_raw_data:
+    model_type = 'smpl_dance'
+    if model_type == 'raw':
         # 原作者提供的，已经删了
         checkpoint = '../pretrained_models/dance_LDA.ckpt'
         data_dir = '../data/motorica_dance'
         wav_dir = '../data/wav'
         basenames = np.loadtxt('../data/motorica_dance/gen_files.txt', dtype=str).tolist()
         dest_dir = '../results/generated/dance_LDA_raw'
-    elif is_gesture:
+    elif model_type == 'gesture':
         # 自己训练的手势
-        checkpoint = 'I:/listen_denoise_action/pretrained_models/my_gesture_data/checkpoints/epoch=9-step=189440.ckpt'
-        data_dir = 'I:/listen_denoise_action/data/my_speech_for_eval'
-        wav_dir = 'I:/listen_denoise_action/data/my_speech_for_eval'
+        checkpoint = '../pretrained_models/my_gesture_data/checkpoints/epoch=9-step=189440.ckpt'
+        data_dir = '../data/my_speech_for_eval'
+        wav_dir = '../data/my_speech_for_eval'
         basenames = np.loadtxt('../data/my_speech_for_eval/my_gen_files.txt', dtype=str).tolist()
         dest_dir = '../results/generated/gesture_LDA'
+    elif model_type == 'smpl_dance':
+        checkpoint = '../pretrained_models/smpl_dance/checkpoints/epoch=9-step=1196300.ckpt'
+        data_dir = '../data/eval_for_smpl_dance'
+        wav_dir = '../data/eval_for_smpl_dance'
+        #basenames = np.loadtxt('../data/eval_for_smpl_dance/gen_files.txt', dtype=str).tolist()
+        basenames = files_to_list('../data/eval_for_smpl_dance/gen_files.txt')
+        dest_dir = '../results/generated/smpl_dance'
     else:
         # 自己训练的舞蹈
         checkpoint = '../pretrained_models/my_train_data/checkpoints/epoch=9-step=403080.ckpt'
@@ -70,12 +93,26 @@ if __name__ == "__main__":
 
     for wavfile in basenames:
         print( f"process {wavfile} ......")
-        if is_gesture:
-            start = fps * 8
-            gen_cnt = 25
+        filename = os.path.join(wav_dir, wavfile[0:-3] + '.wav')
+        duration = get_music_duration(filename)
+
+        if model_type == 'gesture':
+            trim_head = 8
+            start = fps * trim_head
+            if length_s <= 0:
+                gen_cnt = 1
+                length_s = int(duration - trim_head)
+                length = length_s * fps
+            else:
+                gen_cnt = int((duration - trim_head) / length_s)
         else:
             start = 0
-            gen_cnt = 12
+            if length_s <= 0:
+                gen_cnt = 1
+                length_s = int(duration)
+                length = length_s * fps
+            else:
+                gen_cnt = int(duration / length_s)
         style_token = wavfile.split('_')[1]
         for postfix in range(gen_cnt):  # 生成几段，每段长length_s秒
             input_file = f'{wavfile}.audio29_{fps}fps.pkl'

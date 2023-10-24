@@ -278,6 +278,7 @@ def process_dataset():
             f.write(data)
 
     # TODO 手工操作，把gen_files.txt里的相关文件从dataset_root里删除，不删其实也没事
+    #      多次运行的最终状态是。。。
 
     return
 
