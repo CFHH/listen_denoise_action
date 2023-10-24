@@ -127,7 +127,7 @@ def gesture_feats_to_bvh_old(pred_clips, dataset_root, from_train=False):
 class LoggingMixin:
 
     def log_results(self, pred_clips, file_name, log_prefix, logdir=None, render_video=True):
-
+        # eval时走这里
         if logdir is None:
             logdir = f"{self.logger.save_dir}/{self.logger.name}/version_{self.logger.version}/"
 

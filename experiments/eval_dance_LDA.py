@@ -5,6 +5,10 @@ from models.LightningModel import LitLDA
 import scipy.io.wavfile as wav
 import librosa
 from synthesize import do_synthesize, get_cond
+import tqdm
+import glob
+from pymo.parsers import BVHParser
+from utils.logging_mixin import LoggingMixin
 
 
 def cutwav(wav_dir, wavfile, starttime, endtime, suffix, dest_dir):
@@ -47,7 +51,7 @@ def get_music_duration(file_name):
     return seconds
 
 
-if __name__ == "__main__":
+def eval(clip_seconds=20, use_gpu=True, render_video=True):
     model_type = 'smpl_dance'
     if model_type == 'raw':
         # 原作者提供的，已经删了
@@ -83,13 +87,14 @@ if __name__ == "__main__":
     seed = 150
     fps = 30
     trim_s = 0  # 这个就不能不是零
-    length_s = 20  # TODO 每一段生成生成多少秒
+    length_s = clip_seconds  # TODO 每一段生成生成多少秒
     trim = trim_s * fps
-    length = length_s * fps
+    #length = length_s * fps
     fixed_seed = False
-    #gpu = 'cuda:0'
-    gpu = 'cpu'
-    render_video = True
+    if use_gpu:
+        gpu = 'cuda:0'
+    else:
+        gpu = 'cpu'
 
     for wavfile in basenames:
         print( f"process {wavfile} ......")
@@ -102,7 +107,6 @@ if __name__ == "__main__":
             if length_s <= 0:
                 gen_cnt = 1
                 length_s = int(duration - trim_head)
-                length = length_s * fps
             else:
                 gen_cnt = int((duration - trim_head) / length_s)
         else:
@@ -110,9 +114,10 @@ if __name__ == "__main__":
             if length_s <= 0:
                 gen_cnt = 1
                 length_s = int(duration)
-                length = length_s * fps
             else:
                 gen_cnt = int(duration / length_s)
+        length = length_s * fps
+
         style_token = wavfile.split('_')[1]
         for postfix in range(gen_cnt):  # 生成几段，每段长length_s秒
             input_file = f'{wavfile}.audio29_{fps}fps.pkl'
@@ -165,3 +170,35 @@ if __name__ == "__main__":
             if not fixed_seed:
                 seed += 1
             start = start + length
+
+
+def bvh2mp4():
+    data_path = '../results/generated/test'
+    wav_files = glob.glob(os.path.join(data_path, '*.wav'))
+    wav_files.sort()
+
+    for wav_file in tqdm.tqdm(wav_files):
+        base_name = os.path.basename(wav_file)
+        base_name = base_name.split('.')[0]
+        style = '_gOK'
+        name_prefix = f'{base_name}{style}'
+        bvh_file = os.path.join(data_path, f'{name_prefix}.bvh')
+
+        bvh_parser = BVHParser()
+        bvh_data = bvh_parser.parse(bvh_file)
+        bvh_datas = [bvh_data]
+
+        obj = LoggingMixin()
+        pos_datas = obj.bvh_to_pos(bvh_datas)
+        obj.render_video(pos_datas, log_dir=data_path, name_prefix=name_prefix)
+
+        video_file_without_music = os.path.join(data_path, name_prefix + '.mp4')
+        final_video_file = os.path.join(data_path, name_prefix + '_audio.mp4')
+        cmd_line = f'ffmpeg -y -i {video_file_without_music} -i {wav_file} {final_video_file}'
+        exec_cmd(cmd_line)
+    return
+
+
+if __name__ == "__main__":
+    #eval(clip_seconds=60, use_gpu=True, render_video=False)  # 这个在gpu机器上执行，一次性生成2分钟需要30G显存
+    bvh2mp4()
