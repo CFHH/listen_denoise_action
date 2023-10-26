@@ -73,7 +73,10 @@ def get_spectral_flux(audio_file_name):
     return spectral_flux
 
 def get_chroma(audio_file_name):
-    dcp = madmom.audio.chroma.DeepChromaProcessor()
+    HOP_LENGTH = 441
+    MADMOM_FPS = 30
+    MADMOM_SR = HOP_LENGTH * MADMOM_FPS
+    dcp = madmom.audio.chroma.DeepChromaProcessor(sample_rate=MADMOM_SR)  #写死fps=10了，sample_rate无效
     chroma = dcp(audio_file_name)
     return chroma
 
@@ -99,6 +102,11 @@ def process_audio(audio_file_name, save_path, all_files, align_to_raw_data=False
     spectralflux:   1个，频谱流量，对应librosa的onset_strength
     Beatactivation: 1个，中间数据
     Beat:           1个，是拍还是小节？经过测试，只能是拍
+
+    chroma：12个音级分别是{C, C#, D, D#, E , F, F#, G, G#, A, A#, B}，第0个是C，描述的是频率特征（或者音高、色度）。
+        从人耳最低频率到最高频率分了11组大字小字，每个字里分12个音高，第一个就是C，小字一组的C称为“中央C”。C在7个音符中属于dou。
+    spectral flux：谱通量，表示声音频率能量分布的变化，用于检测音频中的事件（比如音符的开始和结束）、测量信号功率谱变化的速度。
+    activation：表示当前帧是downbeat的概率。
     """
     audio_name = os.path.basename(audio_file_name)
     audio_name = audio_name.split('.')[0]
@@ -141,8 +149,10 @@ def process_audio(audio_file_name, save_path, all_files, align_to_raw_data=False
     data, _ = librosa.load(audio_file_name, sr=SR)
     envelope = librosa.onset.onset_strength(y=data, sr=SR)
     mfcc = librosa.feature.mfcc(y=data, sr=SR, n_mfcc=20).T
-    chroma = librosa.feature.chroma_cens(y=data, sr=SR, hop_length=HOP_LENGTH, n_chroma=6).T
+    chroma = librosa.feature.chroma_cens(y=data, sr=SR, hop_length=HOP_LENGTH, n_chroma=12).T
     #tempo, beat_idxs = librosa.beat.beat_track(onset_envelope=envelope, sr=SR, hop_length=HOP_LENGTH, start_bpm=120.0, tightness=100)
+
+    #chroma_madmom = get_chroma(audio_file_name)
 
     spectral_flux = get_spectral_flux(audio_file_name)
     beat_activation, beat_idxs = get_beat_activation(audio_file_name)
