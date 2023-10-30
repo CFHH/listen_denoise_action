@@ -200,5 +200,13 @@ def bvh2mp4():
 
 
 if __name__ == "__main__":
+    """
+    生成长度与显存需求：
+    30s  3963M
+    45s  7153M
+    60s 10197M
+    75s 12517M
+    90s 21653M
+    """
     #eval(clip_seconds=60, use_gpu=True, render_video=False)  # 这个在gpu机器上执行，一次性生成2分钟需要30G显存
     bvh2mp4()
