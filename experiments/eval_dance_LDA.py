@@ -9,6 +9,7 @@ import tqdm
 import glob
 from pymo.parsers import BVHParser
 from utils.logging_mixin import LoggingMixin
+import time
 
 
 def cutwav(wav_dir, wavfile, starttime, endtime, suffix, dest_dir):
@@ -120,6 +121,7 @@ def eval(clip_seconds=20, use_gpu=True, render_video=True):
 
         style_token = wavfile.split('_')[1]
         for postfix in range(gen_cnt):  # 生成几段，每段长length_s秒
+            start_time = time.time()
             input_file = f'{wavfile}.audio29_{fps}fps.pkl'
             output_file = f'{wavfile[0:-3]}_{postfix}_{style_token}'
 
@@ -157,6 +159,10 @@ def eval(clip_seconds=20, use_gpu=True, render_video=True):
                 g_conds.append(style)
 
             do_synthesize(models, l_conds, g_conds, out_file_name, postfix, trim, dest_dir, guidance_factors, gpu, render_video, outfile)
+
+            end_time = time.time()
+            elapsed_time = end_time - start_time
+            print(f"generate {wavfile}_{postfix} (duration {clip_seconds} seconds) cost {elapsed_time} seconds")
 
             temp_wav_file = cutwav(wav_dir, wavfile, (start + trim) / fps, (start + length - trim) / fps, postfix, dest_dir)
             if render_video:
