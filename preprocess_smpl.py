@@ -303,6 +303,31 @@ def change_file_encoding():
     return
 
 
+def process_other_wav_for_eval():
+    import time
+    eval_path = './data/eval_for_smpl_dance2/'
+    all_files = []
+    music_files = glob.glob(os.path.join(eval_path, '*.wav'))
+    music_files.sort()
+    for file_name in tqdm.tqdm(music_files):
+        print("Processing %s ......" % file_name)
+        start_time = time.time()
+        duration = process_audio(file_name, eval_path, all_files, align_to_raw_data=False, process_mirror=False, genra='')
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+        print(f"Process {file_name} (duration {duration} seconds) cost {elapsed_time} seconds")
+
+    encoder = codecs.getincrementalencoder('utf-8')()
+    save_list_name = os.path.join(eval_path, 'gen_files.txt')
+    with open(save_list_name, 'wb') as f:
+        for line in all_files:
+            line = line + '\n'
+            data = encoder.encode(line)
+            f.write(data)
+    return
+
+
 if __name__ == "__main__":
-    change_file_encoding()
+    #change_file_encoding()
     #process_dataset()
+    process_other_wav_for_eval()

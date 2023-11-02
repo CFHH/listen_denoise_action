@@ -147,9 +147,11 @@ def process_audio(audio_file_name, save_path, all_files, align_to_raw_data=False
     HOP_LENGTH = 512
     SR = FPS * HOP_LENGTH
     data, _ = librosa.load(audio_file_name, sr=SR)
+    duration = librosa.get_duration(y=data, sr=SR)
+
     envelope = librosa.onset.onset_strength(y=data, sr=SR)
     mfcc = librosa.feature.mfcc(y=data, sr=SR, n_mfcc=20).T
-    chroma = librosa.feature.chroma_cens(y=data, sr=SR, hop_length=HOP_LENGTH, n_chroma=12).T
+    chroma = librosa.feature.chroma_cens(y=data, sr=SR, hop_length=HOP_LENGTH, n_chroma=6).T
     #tempo, beat_idxs = librosa.beat.beat_track(onset_envelope=envelope, sr=SR, hop_length=HOP_LENGTH, start_bpm=120.0, tightness=100)
 
     #chroma_madmom = get_chroma(audio_file_name)
@@ -239,7 +241,7 @@ def process_audio(audio_file_name, save_path, all_files, align_to_raw_data=False
             reload_panda_data = pkl.load(ff).astype('float32')
         diff = reload_panda_data - panda_data
 
-    return
+    return duration
 
 
 def process_raw_dataset():
