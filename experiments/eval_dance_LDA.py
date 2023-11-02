@@ -158,11 +158,14 @@ def eval(clip_seconds=20, use_gpu=True, render_video=True):
                 l_conds.append(l_cond)
                 g_conds.append(style)
 
+            start_time_core = time.time()
+
             do_synthesize(models, l_conds, g_conds, out_file_name, postfix, trim, dest_dir, guidance_factors, gpu, render_video, outfile)
 
             end_time = time.time()
             elapsed_time = end_time - start_time
-            print(f"generate {wavfile}_{postfix} (duration {clip_seconds} seconds) cost {elapsed_time} seconds")
+            elapsed_time_core = end_time - start_time_core
+            print(f"generate {wavfile}_{postfix} (duration {clip_seconds} seconds), cost {elapsed_time} seconds, core {elapsed_time_core} seconds")
 
             temp_wav_file = cutwav(wav_dir, wavfile, (start + trim) / fps, (start + length - trim) / fps, postfix, dest_dir)
             if render_video:
