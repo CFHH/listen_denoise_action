@@ -6,11 +6,6 @@ data/
 dl_dataset/
 results/
 pretrained_models/*.ckpt
-pretrained_models/my_train_data/
-pretrained_models/my_gesture_data_v1/
-pretrained_models/my_gesture_data_v2_mirror/
-pretrained_models/my_gesture_data/
-pretrained_models/smpl_dance/
-pretrained_models/smpl_dance_chroma6/
+pretrained_models/
 /*.bvh
 *.log
