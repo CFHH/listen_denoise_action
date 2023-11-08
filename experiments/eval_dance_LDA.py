@@ -20,7 +20,7 @@ def cutwav(wav_dir, wavfile, starttime, endtime, suffix, dest_dir):
     fs, X = wav.read(filename)
     start_idx = int(np.round(starttime * fs))
     end_idx = int(np.round(endtime * fs))
-    if end_idx < X.shape[0]:
+    if end_idx <= X.shape[0]:
         wav.write(out_wav_file, fs, X[start_idx:end_idx])
     else:
         print("EOF REACHED")
@@ -88,7 +88,6 @@ def eval(clip_seconds=20, use_gpu=True, render_video=True):
     seed = 150
     fps = 30
     trim_s = 0  # 这个就不能不是零
-    length_s = clip_seconds  # TODO 每一段生成生成多少秒
     trim = trim_s * fps
     #length = length_s * fps
     fixed_seed = False
@@ -99,6 +98,7 @@ def eval(clip_seconds=20, use_gpu=True, render_video=True):
 
     for wavfile in basenames:
         print( f"process {wavfile} ......")
+        length_s = clip_seconds  # TODO 每一段生成生成多少秒
         filename = os.path.join(wav_dir, wavfile[0:-3] + '.wav')
         duration = get_music_duration(filename)
 
