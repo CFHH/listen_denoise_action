@@ -40,15 +40,15 @@ class LitLDA(BaseModel):
         nn_name = diff_params["name"]
         nn_args = diff_params["args"][nn_name]
         
-        self.diffusion_model = LDA(self.pose_dim, 
-                                        self.hparams.Diffusion["residual_layers"],
-                                        self.hparams.Diffusion["residual_channels"],
-                                        self.hparams.Diffusion["embedding_dim"],
-                                        self.input_dim,
-                                        self.g_cond_dim,
-                                        self.n_noise_schedule,
-                                        nn_name,
-                                        nn_args)
+        self.diffusion_model = LDA(self.pose_dim,                                # 每帧动作数据的数量（数这个文件pose_features.expmap.txt）
+                                   self.hparams.Diffusion["residual_layers"],    # 20
+                                   self.hparams.Diffusion["residual_channels"],  # 256
+                                   self.hparams.Diffusion["embedding_dim"],      # 512
+                                   self.input_dim,                               # 每帧音乐数据的数量（数ch0_spec_beatact_features.txt）
+                                   self.g_cond_dim,                              # 风格的数量
+                                   self.n_noise_schedule,                        # 150
+                                   nn_name,
+                                   nn_args)
                                         
         self.loss_fn = nn.MSELoss()
         
@@ -65,6 +65,7 @@ class LitLDA(BaseModel):
     def diffusion(self, poses, t):
         N, T, C = poses.shape
         noise = torch.randn_like(poses)
+        #                       (150,)           ->(20,)     ->(20,1)   ->(20,1,1)    ->(20,T,C)
         noise_scale = self.noise_level.type_as(noise)[t].unsqueeze(1).unsqueeze(2).repeat(1,T,C)
         noise_scale_sqrt = noise_scale**0.5
         noisy_poses = noise_scale_sqrt * poses + (1.0 - noise_scale)**0.5 * noise
@@ -73,17 +74,20 @@ class LitLDA(BaseModel):
     def forward(self, batch):
         # ctrl是音乐数据(batch_size，segment_length，3)，global_cond是style数据(...，8)，poses是动作数据(...，61)
         ctrl, global_cond, poses =batch
-                
+        # N是batch_size=20，T是帧数=150，C是每帧数据=61
         N, T, C = poses.shape
 
         num_noisesteps = self.n_noise_schedule
         t = torch.randint(0, num_noisesteps, [N], device=poses.device) # (batch_size,)
 
+        """
+        # 这段与diffusion()重复
         noise = torch.randn_like(poses)
         noise_scale = self.noise_level.type_as(noise)[t].unsqueeze(1).unsqueeze(2).repeat(1,T,C)
         noise_scale_sqrt = noise_scale**0.5
         noisy_poses = noise_scale_sqrt * poses + (1.0 - noise_scale)**0.5 * noise
-        noisy_poses, noise = self.diffusion(poses, t)
+        """
+        noisy_poses, noise = self.diffusion(poses, t)  # (N, T, C)
         predicted = self.diffusion_model(noisy_poses, ctrl, global_cond, t)
 
         loss = self.loss_fn(noise, predicted.squeeze(1))

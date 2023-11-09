@@ -39,7 +39,7 @@ def sample_mixmodels(models, batches, guidance_factors):
     nbatch = poses.size(0)
     noise_scale = torch.from_numpy(alpha_cum**0.5).type_as(poses).unsqueeze(1)
 
-    for n in range(len(alpha) - 1, -1, -1):
+    for n in range(len(alpha) - 1, -1, -1):  # 从149到0
         c1 = 1 / alpha[n]**0.5
         c2 = beta[n] / (1 - alpha_cum[n])**0.5
                                     
