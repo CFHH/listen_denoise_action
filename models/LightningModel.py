@@ -29,9 +29,9 @@ class LitLDA(BaseModel):
         n_timesteps = self.hparams.Data["segment_length"]
         diff_params = self.hparams.Diffusion
             
-        beta_min = diff_params["noise_schedule_start"]
-        beta_max = diff_params["noise_schedule_end"]
-        self.n_noise_schedule = diff_params["n_noise_schedule"]
+        beta_min = diff_params["noise_schedule_start"]  # 0.01
+        beta_max = diff_params["noise_schedule_end"]    # 0.7
+        self.n_noise_schedule = diff_params["n_noise_schedule"]  # 这个150与训练的150帧得是一致的
         
         self.noise_schedule_name = "linear"                                                         
         self.noise_schedule = torch.linspace(beta_min, beta_max, self.n_noise_schedule) # [min, max]平均150个
@@ -64,7 +64,7 @@ class LitLDA(BaseModel):
         
     def diffusion(self, poses, t):
         N, T, C = poses.shape
-        noise = torch.randn_like(poses)
+        noise = torch.randn_like(poses)  # 均值为0方差为1的正态分布
         #                       (150,)           ->(20,)     ->(20,1)   ->(20,1,1)    ->(20,T,C)
         noise_scale = self.noise_level.type_as(noise)[t].unsqueeze(1).unsqueeze(2).repeat(1,T,C)
         noise_scale_sqrt = noise_scale**0.5
@@ -77,7 +77,7 @@ class LitLDA(BaseModel):
         # N是batch_size=20，T是帧数=150，C是每帧数据=61
         N, T, C = poses.shape
 
-        num_noisesteps = self.n_noise_schedule
+        num_noisesteps = self.n_noise_schedule  # 150
         t = torch.randint(0, num_noisesteps, [N], device=poses.device) # (batch_size,)
 
         """

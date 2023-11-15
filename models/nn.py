@@ -9,7 +9,7 @@ from math import sqrt
 class Conv1dLayer(nn.Module):
   def __init__(self, in_channels, out_channels, kernel_size, padding=0, dilation=1):
     super().__init__()
-    self.conv1d = nn.Conv1d(in_channels, out_channels, kernel_size=kernel_size, padding=padding, dilation=dilation)
+    self.conv1d = nn.Conv1d(in_channels, out_channels, kernel_size=kernel_size, padding=padding, dilation=dilation)  # 有多少个out_channels，就需要多少个1维卷积
     nn.init.kaiming_normal_(self.conv1d.weight)
 
   def forward(self, x):
