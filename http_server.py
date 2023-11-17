@@ -1,4 +1,5 @@
 from flask import Flask, request, render_template, jsonify
+from werkzeug.utils import secure_filename
 import numpy as np
 import json
 import glob
@@ -17,7 +18,7 @@ def index():
     visit_number = visit_number + 1
     return "Hello, World %i" % visit_number
     """
-    return render_template(os.path.join(g_http_path, 'upload_file.html'))
+    return render_template('upload_file.html')
 
 
 @app.route('/file_upload', methods=['POST'])
@@ -25,7 +26,7 @@ def file_upload():
     file = request.files.get('file')
     if not file:
         return '上传失败，未选择文件'
-    filename = file.filename
+    filename = secure_filename(file.filename)
     if '.' not in filename or filename.split('.')[-1] not in ['wav', 'mp3']:
         return '文件类型不支持'
     file.save(os.path.join(g_upload_path, file.filename))

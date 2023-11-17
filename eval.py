@@ -15,7 +15,7 @@ g_eval_path = './http_data/eval'
 g_upload_path = './http_data/upload'
 g_audio_feats_columns = None
 g_all_styles = None
-use_gpu = False
+use_gpu = True
 if use_gpu:
     gpu = 'cuda:0'
 else:
