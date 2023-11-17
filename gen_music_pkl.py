@@ -81,7 +81,7 @@ def get_chroma(audio_file_name):
     return chroma
 
 
-def process_audio(audio_file_name, save_path, all_files, align_to_raw_data=False, process_mirror=True, genra=''):
+def process_audio(audio_file_name, save_path, all_files, align_to_raw_data=False, process_mirror=True, genra='', exists_ok=True):
     """
     :param audio_file_name:
     :param save_path:
@@ -121,12 +121,13 @@ def process_audio(audio_file_name, save_path, all_files, align_to_raw_data=False
         if all_files is not None:
             all_files.append(temp_name)
         save_name_2 = os.path.join(save_path, temp_name + '.audio29_30fps.pkl')
-    if process_mirror:
-        if os.path.isfile(save_name_1) and os.path.isfile(save_name_2):
-            return
-    else:
-        if os.path.isfile(save_name_1):
-            return
+    if exists_ok:
+        if process_mirror:
+            if os.path.isfile(save_name_1) and os.path.isfile(save_name_2):
+                return {}
+        else:
+            if os.path.isfile(save_name_1):
+                return {}
 
     # 原数据集文件，目标是为了找个起始帧，好与动作数据集对齐
     if align_to_raw_data:
@@ -241,7 +242,7 @@ def process_audio(audio_file_name, save_path, all_files, align_to_raw_data=False
             reload_panda_data = pkl.load(ff).astype('float32')
         diff = reload_panda_data - panda_data
 
-    return duration
+    return {'duration': duration, 'data': panda_data}
 
 
 def process_raw_dataset():

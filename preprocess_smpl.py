@@ -312,10 +312,10 @@ def process_other_wav_for_eval():
     for file_name in tqdm.tqdm(music_files):
         print("Processing %s ......" % file_name)
         start_time = time.time()
-        duration = process_audio(file_name, eval_path, all_files, align_to_raw_data=False, process_mirror=False, genra='')
+        result = process_audio(file_name, eval_path, all_files, align_to_raw_data=False, process_mirror=False, genra='')
         end_time = time.time()
         elapsed_time = end_time - start_time
-        print(f"Process {file_name} (duration {duration} seconds) cost {elapsed_time} seconds")
+        print(f"Process {file_name} (duration {result['duration']} seconds) cost {elapsed_time} seconds")
 
     encoder = codecs.getincrementalencoder('utf-8')()
     save_list_name = os.path.join(eval_path, 'gen_files.txt')

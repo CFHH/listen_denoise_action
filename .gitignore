@@ -9,3 +9,4 @@ pretrained_models/*.ckpt
 pretrained_models/
 /*.bvh
 *.log
+http_data/
