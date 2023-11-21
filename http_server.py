@@ -5,7 +5,7 @@ import json
 import glob
 import os
 import random
-from eval import cache_model, generate_dance_for_music, g_http_path, g_upload_path
+from eval import cache_model, generate_dance_for_music, bvh2jsonstr, g_upload_path
 
 
 app = Flask(__name__)
@@ -25,12 +25,30 @@ def index():
 def file_upload():
     file = request.files.get('file')
     if not file:
-        return '上传失败，未选择文件'
+        return 'no file chosen'
     filename = secure_filename(file.filename)
     if '.' not in filename or filename.split('.')[-1] not in ['wav', 'mp3']:
-        return '文件类型不支持'
+        return 'file ext not supported'
     file.save(os.path.join(g_upload_path, file.filename))
-    return '文件上传成功'
+    return 'success'
+
+
+@app.route("/get_motion")
+def get_motion():
+    DEBUG = False
+    music_name = request.args.get("music")
+    music_name = secure_filename(music_name)
+    if music_name is None:
+        #json_data = {'error': 'arg error'}
+        motion_data = ''
+    else:
+        if DEBUG:
+            error = 'OK'
+            motion_data = bvh2jsonstr('./http_data/debug.bvh')
+        else:
+            error, motion_data = generate_dance_for_music(music_name)
+        #json_data = {'error': error, 'motion': motion_data}
+    return motion_data
 
 
 if __name__ == "__main__":

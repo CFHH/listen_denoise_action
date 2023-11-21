@@ -7,6 +7,9 @@ from models.LightningModel import LitLDA
 from gen_music_pkl import process_audio
 from synthesize import nans2zeros, sample_mixmodels
 from utils.motion_dataset import styles2onehot
+from helper.smpl_bvh_loader import load_bvh_motion
+from helper.bvh2ue import bvh2ueactor, send_motion
+import json
 
 
 g_model = None
@@ -54,19 +57,24 @@ def generate_dance_for_music(file_name, style_token='gOK'):
     if g_model is None:
         cache_model()
 
+    error = 'ok'
+    json_str = ''
+
     result_data = {'error':'0'}
     full_filename = os.path.join(g_upload_path, file_name)
     if not os.path.isfile(full_filename):
-        result_data['error'] = 'not uploaded'
-        return result_data
+        error = f'{file_name} not uploaded'
+        print(error)
+        return error, json_str
 
     base_name = os.path.basename(full_filename)
     parts = base_name.split('.')
     audio_name = parts[0]
     ext = parts[1].lower()
     if ext not in['wav', 'mp3']:
-        result_data['error'] = 'ext not supported'
-        return result_data
+        error = f'ext(.{ext}) not supported'
+        print(error)
+        return error, json_str
 
     #base_name.replace('_', '')  # 这是为了最初的代码
 
@@ -87,7 +95,6 @@ def generate_dance_for_music(file_name, style_token='gOK'):
     style_cond = styles_onehot.repeat(nbatch, nframes, 1) # l_cond
     audio_cond = g_model.standardizeInput(ctrl)           # g_cond
 
-
     # do_synthesize(models, l_conds, g_conds, out_file_name, postfix, trim, dest_dir, guidance_factors, gpu, render_video, outfile)
     device = torch.device(gpu)
     batch = audio_cond.to(device), style_cond.to(device), None
@@ -100,13 +107,25 @@ def generate_dance_for_music(file_name, style_token='gOK'):
         clips = sample_mixmodels(models, batches, guidance_factors)
         g_model.log_results(clips, bvh_filename, "", logdir=g_eval_path, render_video=False)
 
+    json_str = bvh2jsonstr(bvh_filename)
+    return error, json_str
 
-    return result_data
+
+def bvh2jsonstr(bvh_filename):
+    root_position, rotation, frametime, name, parent, offsets = load_bvh_motion(bvh_filename, True)
+    root_position -= offsets[0]
+    root_position *= 100
+    msg_arr = []
+    for idx in range(len(rotation)):
+        msg = send_motion(rotation[idx], root_position[idx])
+        msg_arr.append(msg)
+    json_str = json.dumps(msg_arr)
+    return json_str
 
 
 if __name__ == "__main__":
-    str = '1.2.3.4'
-    a = str.split('.')[-1]
+    bvh2jsonstr('./results/generated/smpl_dance_chroma6_layers15_seed150/BBoomBBoom_gOK_0_gOK.bvh')
+
     cache_model()
     r1 = generate_dance_for_music('嘻哈风格wav.wav')
     r2 = generate_dance_for_music('嘻哈风格mp3.mp3')
