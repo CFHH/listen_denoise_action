@@ -35,18 +35,18 @@ def file_upload():
 
 @app.route("/get_motion")
 def get_motion():
-    DEBUG = False
+    DEBUG = True
     music_name = request.args.get("music")
-    music_name = secure_filename(music_name)
     if music_name is None:
-        #json_data = {'error': 'arg error'}
-        motion_data = ''
-    else:
         if DEBUG:
             error = 'OK'
             motion_data = bvh2jsonstr('./http_data/debug.bvh')
         else:
-            error, motion_data = generate_dance_for_music(music_name)
+            motion_data = ''
+            #json_data = {'error': 'arg error'}
+    else:
+        music_name = secure_filename(music_name)
+        error, motion_data = generate_dance_for_music(music_name)
         #json_data = {'error': error, 'motion': motion_data}
     return motion_data
 

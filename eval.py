@@ -53,6 +53,7 @@ def generate_dance_for_music(file_name, style_token='gOK'):
     :param style_token:
     :return:
     """
+    print(f'generate_dance_for_music(), file_name=f{file_name}')
     global g_model, g_eval_path, g_upload_path, g_audio_feats_columns, g_all_styles, gpu, g_gen_seconds
     if g_model is None:
         cache_model()
@@ -78,6 +79,7 @@ def generate_dance_for_music(file_name, style_token='gOK'):
 
     #base_name.replace('_', '')  # 这是为了最初的代码
 
+    print('processing audio data ...')
     r = process_audio(full_filename, g_eval_path, all_files=None, align_to_raw_data=False, process_mirror=False, genra='', exists_ok=False)
     duration = r['duration']
     pkl_data = r['data']
@@ -96,6 +98,7 @@ def generate_dance_for_music(file_name, style_token='gOK'):
     audio_cond = g_model.standardizeInput(ctrl)           # g_cond
 
     # do_synthesize(models, l_conds, g_conds, out_file_name, postfix, trim, dest_dir, guidance_factors, gpu, render_video, outfile)
+    print('generating dance ...')
     device = torch.device(gpu)
     batch = audio_cond.to(device), style_cond.to(device), None
     models = [g_model]
@@ -107,7 +110,10 @@ def generate_dance_for_music(file_name, style_token='gOK'):
         clips = sample_mixmodels(models, batches, guidance_factors)
         g_model.log_results(clips, bvh_filename, "", logdir=g_eval_path, render_video=False)
 
+    print('translating for UE ...')
+    bvh_filename = os.path.join(g_eval_path, f'{bvh_filename}.bvh')
     json_str = bvh2jsonstr(bvh_filename)
+    print('done.')
     return error, json_str
 
 
@@ -124,8 +130,6 @@ def bvh2jsonstr(bvh_filename):
 
 
 if __name__ == "__main__":
-    bvh2jsonstr('./results/generated/smpl_dance_chroma6_layers15_seed150/BBoomBBoom_gOK_0_gOK.bvh')
-
     cache_model()
     r1 = generate_dance_for_music('嘻哈风格wav.wav')
     r2 = generate_dance_for_music('嘻哈风格mp3.mp3')
