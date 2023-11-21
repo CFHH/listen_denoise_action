@@ -23,7 +23,7 @@ if use_gpu:
     gpu = 'cuda:0'
 else:
     gpu = 'cpu'
-g_gen_seconds = 10
+g_gen_seconds = 30
 
 
 def cache_model():
@@ -58,7 +58,7 @@ def generate_dance_for_music(file_name, style_token='gOK'):
     if g_model is None:
         cache_model()
 
-    error = 'ok'
+    error = None
     json_str = ''
 
     result_data = {'error':'0'}

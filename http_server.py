@@ -18,7 +18,8 @@ def index():
     visit_number = visit_number + 1
     return "Hello, World %i" % visit_number
     """
-    return render_template('upload_file.html')
+    #return render_template('upload_file.html')
+    return render_template('upload_and_generate')
 
 
 @app.route('/file_upload', methods=['POST'])
@@ -49,6 +50,22 @@ def get_motion():
         error, motion_data = generate_dance_for_music(music_name)
         #json_data = {'error': error, 'motion': motion_data}
     return motion_data
+
+@app.route("/upload_and_generate", methods=['POST'])
+def upload_and_generate():
+    file = request.files.get('file')
+    if not file:
+        return 'no file chosen'
+    filename = secure_filename(file.filename)
+    if '.' not in filename or filename.split('.')[-1] not in ['wav', 'mp3']:
+        return 'file ext not supported'
+    file.save(os.path.join(g_upload_path, file.filename))
+
+    error, motion_data = generate_dance_for_music(filename)
+    if error is not None:
+        return error
+    else:
+        return motion_data
 
 
 if __name__ == "__main__":
