@@ -5,7 +5,7 @@ import json
 import glob
 import os
 import random
-from eval import cache_model, generate_dance_for_music, bvh2jsonstr, g_upload_path
+from eval import cache_model, generate_dance_for_music, bvh2uedata, g_upload_path
 
 
 app = Flask(__name__)
@@ -19,7 +19,7 @@ def index():
     return "Hello, World %i" % visit_number
     """
     #return render_template('upload_file.html')
-    return render_template('upload_and_generate')
+    return render_template('upload_and_generate.html')
 
 
 @app.route('/file_upload', methods=['POST'])
@@ -41,7 +41,8 @@ def get_motion():
     if music_name is None:
         if DEBUG:
             error = 'OK'
-            motion_data = bvh2jsonstr('./http_data/debug.bvh')
+            ue_data = bvh2uedata('./http_data/debug.bvh')
+            motion_data = json.dumps(ue_data)
         else:
             motion_data = ''
             #json_data = {'error': 'arg error'}
@@ -55,10 +56,14 @@ def get_motion():
 def upload_and_generate():
     file = request.files.get('file')
     if not file:
-        return 'no file chosen'
+        error = 'no file chosen'
+        print(error)
+        return error
     filename = secure_filename(file.filename)
     if '.' not in filename or filename.split('.')[-1] not in ['wav', 'mp3']:
-        return 'file ext not supported'
+        error = 'file ext not supported'
+        print(error)
+        return error
     file.save(os.path.join(g_upload_path, file.filename))
 
     error, motion_data = generate_dance_for_music(filename)

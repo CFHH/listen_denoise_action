@@ -53,7 +53,7 @@ def generate_dance_for_music(file_name, style_token='gOK'):
     :param style_token:
     :return:
     """
-    print(f'generate_dance_for_music(), file_name=f{file_name}')
+    print(f'generate_dance_for_music(), file_name={file_name}')
     global g_model, g_eval_path, g_upload_path, g_audio_feats_columns, g_all_styles, gpu, g_gen_seconds
     if g_model is None:
         cache_model()
@@ -112,12 +112,18 @@ def generate_dance_for_music(file_name, style_token='gOK'):
 
     print('translating for UE ...')
     bvh_filename = os.path.join(g_eval_path, f'{bvh_filename}.bvh')
-    json_str = bvh2jsonstr(bvh_filename)
+    ue_data = bvh2uedata(bvh_filename)
+    json_data = {
+        'audio': file_name,
+        'fps': 30,
+        'motion': ue_data,
+    }
+    json_str = json.dumps(json_data)
     print('done.')
     return error, json_str
 
 
-def bvh2jsonstr(bvh_filename):
+def bvh2uedata(bvh_filename):
     root_position, rotation, frametime, name, parent, offsets = load_bvh_motion(bvh_filename, True)
     root_position -= offsets[0]
     root_position *= 100
@@ -125,8 +131,9 @@ def bvh2jsonstr(bvh_filename):
     for idx in range(len(rotation)):
         msg = send_motion(rotation[idx], root_position[idx])
         msg_arr.append(msg)
-    json_str = json.dumps(msg_arr)
-    return json_str
+    #json_str = json.dumps(msg_arr)
+    #return json_str
+    return msg_arr
 
 
 if __name__ == "__main__":
