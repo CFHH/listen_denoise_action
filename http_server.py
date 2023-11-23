@@ -1,10 +1,11 @@
-from flask import Flask, request, render_template, jsonify
+from flask import Flask, request, render_template, make_response
 from werkzeug.utils import secure_filename
 import numpy as np
 import json
 import glob
 import os
 import random
+import json
 from eval import cache_model, generate_dance_for_music, bvh2uedata, g_upload_path
 
 
@@ -20,6 +21,11 @@ def index():
     """
     #return render_template('upload_file.html')
     return render_template('upload_and_generate.html')
+
+@app.route("/test")
+def test():
+    response = make_response("test", 200, {'name': 'test'})
+    return response
 
 
 @app.route('/file_upload', methods=['POST'])
@@ -66,11 +72,15 @@ def upload_and_generate():
         return error
     file.save(os.path.join(g_upload_path, file.filename))
 
-    error, motion_data = generate_dance_for_music(filename)
+    error, json_data = generate_dance_for_music(filename)
     if error is not None:
-        return error
+        content = error
+        response = make_response(content, 200)
     else:
-        return motion_data
+        content = json.dumps(json_data['motion'])
+        response = make_response(content, 200)
+        response.headers['audio'] = json_data['audio']
+    return response
 
 
 if __name__ == "__main__":

@@ -118,9 +118,9 @@ def generate_dance_for_music(file_name, style_token='gOK'):
         'fps': 30,
         'motion': ue_data,
     }
-    json_str = json.dumps(json_data)
+    #json_str = json.dumps(json_data)
     print('done.')
-    return error, json_str
+    return error, json_data
 
 
 def bvh2uedata(bvh_filename):
