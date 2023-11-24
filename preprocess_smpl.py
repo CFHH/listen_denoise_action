@@ -19,6 +19,7 @@ from utils.logging_mixin import custom_feats_to_bvh, roottransformer_method, roo
 from gen_music_pkl import process_audio
 from pymo.pipeline import get_pipeline, transform, transform2pkl, inverse_transform
 import codecs
+from pytorch_lightning import seed_everything
 
 
 def write_bvh(bvh_data, fname):
@@ -167,7 +168,7 @@ def process_motion(bvh_filename, fps, motions_cols, dataset_root, save_path, all
     return
 
 
-def process_dataset():
+def process_dataset(dataset_config):
     """
     用一份新骨骼需要做的事情：
     1、skeleton.bvh
@@ -186,20 +187,21 @@ def process_dataset():
     用于eval的音频文件，必须以_风格结尾
     """
     # 原始数据集
-    bvh_path = 'I:/vq_action/data/1_aligned/skjx/bvh_bpm0_fps30/'
-    wav_path = 'I:/vq_action/data/1_aligned/skjx/music-aligned/'
+    bvh_path = dataset_config['bvh_path']
+    wav_path = dataset_config['wav_path']
     fps = 30
     # 训练数据集
-    dataset_root = './data/smpl_dance/'
+    dataset_root = dataset_config['dataset_root']
     save_path = dataset_root
-    eval_path = './data/eval_for_smpl_dance/'
+    eval_path = dataset_config['eval_path']
 
     # 拆分数据集(skjx共255首，225首用来train，20首用来test，10首用来eval)
     motion_files = glob.glob(os.path.join(bvh_path, '*.bvh'))
     motion_cnt = len(motion_files)
-    eval_cnt = int(motion_cnt * 0.04)
-    test_cnt = int(motion_cnt * 0.08)
+    test_cnt = dataset_config['test_cnt']
+    eval_cnt = dataset_config['eval_cnt']
     train_cnt = motion_cnt - test_cnt - eval_cnt
+    seed_everything(dataset_config['seed'])
     test_eval_files = random.sample(motion_files, eval_cnt + test_cnt)
     for i in test_eval_files:
         motion_files.remove(i)
@@ -221,7 +223,7 @@ def process_dataset():
         wav_filename = os.path.join(wav_path, f'{base_name}.wav')
         return wav_filename, base_name
 
-    genra = '_gOK'
+    genra = '_' + dataset_config['genra']
     # train
     all_files = []
     for bvh_filename in tqdm.tqdm(train_files):
@@ -259,6 +261,8 @@ def process_dataset():
     shutil.copy(save_list_name, os.path.join(save_path, 'dance_test_files_kth.txt'))
 
     # eval
+    if eval_cnt == 0:
+        return
     all_files = []
     for bvh_filename in tqdm.tqdm(eval_files):
         print("Process EVAL: %s" % bvh_filename)
@@ -330,4 +334,28 @@ def process_other_wav_for_eval():
 if __name__ == "__main__":
     #change_file_encoding()
     #process_dataset()
-    process_other_wav_for_eval()
+    #process_other_wav_for_eval()
+
+    smpl_dataset_config = {
+        'bvh_path': 'I:/vq_action/data/1_aligned/skjx/bvh_bpm0_fps30/',
+        'wav_path': 'I:/vq_action/data/1_aligned/skjx/music-aligned/',
+        'dataset_root': './data/smpl_dance/',
+        'eval_path': './data/eval_for_smpl_dance/',
+        'test_cnt': 20,
+        'eval_cnt': 10,
+        'genra': 'gOK',
+        'seed' : 999,
+    }
+
+    frankenstein_dataset_config = {
+        'bvh_path': './data/frankenstein/bvh',
+        'wav_path': './data/frankenstein/wav',
+        'dataset_root': './data/frankenstein/',
+        'eval_path': './data/eval_for_frankenstein/',
+        'test_cnt': 5,
+        'eval_cnt': 0,
+        'genra': 'gOK',
+        'seed' : 1124,
+    }
+
+    process_dataset(frankenstein_dataset_config)
