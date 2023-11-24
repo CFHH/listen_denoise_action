@@ -125,8 +125,8 @@ def generate_dance_for_music(file_name, style_token='gOK'):
 
 def bvh2uedata(bvh_filename):
     root_position, rotation, frametime, name, parent, offsets = load_bvh_motion(bvh_filename, True)
-    root_position -= offsets[0]
     root_position *= 100
+    root_position -= [-0.0363,91.213097,4.3399]
     msg_arr = []
     for idx in range(len(rotation)):
         msg = send_motion(rotation[idx], root_position[idx])

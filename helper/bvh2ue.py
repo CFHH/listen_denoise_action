@@ -92,6 +92,6 @@ def send_motion(rotations, root_pos):
         rot_end = Rotation.from_matrix(rot_mat)
         quaternionWS = rot_end.as_quat()
 
-        msg = msg + SMPL_JOINTS_NAMES[i] +  ":" + "{:.9f}".format(locationWS[0])+ "," + "{:.9f}".format(-locationWS[2]) +  "," + "{:.9f}".format(locationWS[1]/2) +  "," + "{:.9f}".format(-quaternionWS[0]) +  "," + "{:.9f}".format(quaternionWS[1])+  "," + "{:.9f}".format(-quaternionWS[2])+ "," + "{:.9f}".format(quaternionWS[3]) + "|"
+        msg = msg + SMPL_JOINTS_NAMES[i] +  ":" + "{:.9f}".format(locationWS[0])+ "," + "{:.9f}".format(locationWS[2]) +  "," + "{:.9f}".format(locationWS[1]) +  "," + "{:.9f}".format(-quaternionWS[0]) +  "," + "{:.9f}".format(quaternionWS[1])+  "," + "{:.9f}".format(-quaternionWS[2])+ "," + "{:.9f}".format(quaternionWS[3]) + "|"
     msg = msg + "|"
     return msg
