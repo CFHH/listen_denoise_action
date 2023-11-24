@@ -66,6 +66,8 @@ def upload_and_generate():
         print(error)
         return error
     filename = secure_filename(file.filename)
+    if filename is not None:
+        print(f'upload_and_generate(), received {file.filename}, {filename}')
     if '.' not in filename or filename.split('.')[-1] not in ['wav', 'mp3']:
         error = 'file ext not supported'
         print(error)
