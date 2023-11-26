@@ -134,6 +134,7 @@ def frankenstein_music():
     # 动作列表
     bvh_dir = 'I:/vq_action/data/2_unified/skjx_bvh_bpm140_fps30'
     dance_cnt = len(dance_names)
+    music_style = -1
     for i in range(dance_cnt):
         dance_name = dance_names[i]
         print(f'processing ({i}/{dance_cnt}) {dance_name} ...')
@@ -142,7 +143,7 @@ def frankenstein_music():
             print(f'{dance_name} does not exist')
 
         # 先拷贝
-        copy_filename = os.path.join(bvh_save_path, f'{dance_name}.bvh')
+        copy_filename = os.path.join(bvh_save_path, f'FF{dance_name}.bvh')
         shutil.copy(bvh_filename, copy_filename)
 
         # 加载bvh
@@ -151,7 +152,8 @@ def frankenstein_music():
         music_cnt = int(round(motion_frames / expected_music_frames))
 
         # 合并音乐
-        save_wav_file_name = os.path.join(wav_save_path, f'{dance_name}.wav')
+        save_wav_file_name = os.path.join(wav_save_path, f'FF{dance_name}.wav')
+        """
         music_style = i % len(music_files_list)
         music_list = music_files_list[music_style]
         begin_idx = cur_music_idx[music_style]
@@ -159,6 +161,20 @@ def frankenstein_music():
         if begin_idx + music_cnt > len(music_list):
             print(f'{dance_name} not enough music!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
             break
+        """
+        find = False
+        for j in range(len(music_files_list)):
+            music_style = (music_style + 1) % len(music_files_list)
+            music_list = music_files_list[music_style]
+            begin_idx = cur_music_idx[music_style]
+            if begin_idx + music_cnt > len(music_list):
+                print(f'{music_dirs[music_style]} has not enough music!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!')
+                continue
+            else:
+                find = True
+                break
+        if find:
+            print(f'choosing music style {music_style}, from index = {begin_idx}, need {music_cnt}')
 
         music_data_list = []
         chosen_cnt = 0
