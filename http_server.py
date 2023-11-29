@@ -20,7 +20,11 @@ def index():
     return "Hello, World %i" % visit_number
     """
     #return render_template('upload_file.html')
-    return render_template('upload_and_generate.html')
+    style = request.args.get("style")
+    if style is None or style not in ['gOK', 'gFF']:
+        error = f'style is invalid'
+        return error
+    return render_template(f'upload_and_generate_{style}.html')
 
 @app.route("/test")
 def test():
