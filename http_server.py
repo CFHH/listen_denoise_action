@@ -20,11 +20,14 @@ def index():
     return "Hello, World %i" % visit_number
     """
     #return render_template('upload_file.html')
+    """
     style = request.args.get("style")
     if style is None or style not in ['gOK', 'gFF']:
         error = f'style is invalid'
         return error
     return render_template(f'upload_and_generate_{style}.html')
+    """
+    return render_template(f'upload_and_generate.html')
 
 @app.route("/test")
 def test():
@@ -64,11 +67,13 @@ def get_motion():
 
 @app.route("/upload_and_generate", methods=['POST'])
 def upload_and_generate():
+    """
     style = request.args.get("style")
     if style is None or style not in ['gOK', 'gFF']:
         error = f'style is invalid'
         print(error)
         return error
+    """
     file = request.files.get('file')
     if not file:
         error = 'no file chosen'
@@ -82,6 +87,12 @@ def upload_and_generate():
         print(error)
         return error
     file.save(os.path.join(g_upload_path, file.filename))
+    print(f'Uploaded file {filename}')
+
+    basename = filename.split('.')[0]
+    style = basename.split('_')[-1]
+    if style is None or style not in ['gOK', 'gFF']:
+        style = 'gFF'
 
     error, json_data = generate_dance_for_music(filename, style_token=style)
     if error is not None:
