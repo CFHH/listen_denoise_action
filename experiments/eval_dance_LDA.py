@@ -112,7 +112,7 @@ def eval(clip_seconds=20, use_gpu=True, render_video=True):
                 gen_cnt = int((duration - trim_head) / length_s)
         else:
             start = 0
-            if length_s <= 0:
+            if length_s <= 0 or duration < length_s:
                 gen_cnt = 1
                 length_s = int(duration)
             else:
@@ -182,15 +182,16 @@ def eval(clip_seconds=20, use_gpu=True, render_video=True):
 
 
 def bvh2mp4():
-    data_path = '../results/generated/from_ubuntu'
+    data_path = '../results/generated/gen_frankenstein'
     wav_files = glob.glob(os.path.join(data_path, '*.wav'))
     wav_files.sort()
 
     for wav_file in tqdm.tqdm(wav_files):
         base_name = os.path.basename(wav_file)
         base_name = base_name.split('.')[0]
-        style = '_gOK'
-        name_prefix = f'{base_name}{style}'
+        #style = 'gOK'
+        style = base_name.split('_')[1]
+        name_prefix = f'{base_name}_{style}'
         bvh_file = os.path.join(data_path, f'{name_prefix}.bvh')
 
         bvh_parser = BVHParser()
