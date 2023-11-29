@@ -60,6 +60,11 @@ def get_motion():
 
 @app.route("/upload_and_generate", methods=['POST'])
 def upload_and_generate():
+    style = request.args.get("style")
+    if style is None or style not in ['gOK', 'gFF']:
+        error = f'style is invalid'
+        print(error)
+        return error
     file = request.files.get('file')
     if not file:
         error = 'no file chosen'
@@ -74,7 +79,7 @@ def upload_and_generate():
         return error
     file.save(os.path.join(g_upload_path, file.filename))
 
-    error, json_data = generate_dance_for_music(filename)
+    error, json_data = generate_dance_for_music(filename, style_token=style)
     if error is not None:
         content = error
         response = make_response(content, 200)

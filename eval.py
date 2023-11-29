@@ -32,7 +32,8 @@ def cache_model():
     os.makedirs(g_eval_path, exist_ok=True)
     os.makedirs(g_upload_path, exist_ok=True)
 
-    checkpoint = './pretrained_models/smpl_dance_chroma6_layers15/checkpoints/epoch=10-step=1315930.ckpt'
+    checkpoint = './pretrained_models/frankenstein_v2/checkpoints/epoch=8-step=1307070.ckpt'
+    print(f'LOADING MODEL {checkpoint} ......')
     g_model = LitLDA.load_from_checkpoint(checkpoint, dataset_root=g_eval_path)
     device = torch.device(gpu)
     g_model.to(device)
@@ -42,18 +43,20 @@ def cache_model():
     g_audio_feats_columns = np.loadtxt(input_feats_file, dtype=str)
 
     styles_file = os.path.join(g_eval_path, g_model.hparams.Data["styles_file"])
+    print(f'LOADING Style File {styles_file} ......')
     g_all_styles = np.loadtxt(styles_file, dtype=str)
 
     return g_model
 
 
-def generate_dance_for_music(file_name, style_token='gOK'):
+def generate_dance_for_music(file_name, style_token='gFF'):
     """
     :param file_name: 是上传目录里的文件
-    :param style_token:
+    :param style_token: gOK表示流行，gFF表示AI生成的音乐
     :return:
     """
-    print(f'generate_dance_for_music(), file_name={file_name}')
+    valid_styles = ['gOK', 'gFF']
+    print(f'generate_dance_for_music(), file_name={file_name}, style={style_token}')
     global g_model, g_eval_path, g_upload_path, g_audio_feats_columns, g_all_styles, gpu, g_gen_seconds
     if g_model is None:
         cache_model()
@@ -78,6 +81,11 @@ def generate_dance_for_music(file_name, style_token='gOK'):
         return error, json_str
 
     #base_name.replace('_', '')  # 这是为了最初的代码
+
+    if style_token not in valid_styles:
+        error = f'style(.{style_token}) not supported'
+        print(error)
+        return error, json_str
 
     print('processing audio data ...')
     r = process_audio(full_filename, g_eval_path, all_files=None, align_to_raw_data=False, process_mirror=False, genra='', exists_ok=False)
@@ -126,7 +134,7 @@ def generate_dance_for_music(file_name, style_token='gOK'):
 def bvh2uedata(bvh_filename):
     root_position, rotation, frametime, name, parent, offsets = load_bvh_motion(bvh_filename, True)
     root_position *= 100
-    root_position -= [-0.0363,91.213097,4.3399]
+    root_position -= [-0.0363, 91.213097, 4.3399]
     msg_arr = []
     for idx in range(len(rotation)):
         msg = send_motion(rotation[idx], root_position[idx])
@@ -160,4 +168,3 @@ if __name__ == "__main__":
     r1 = generate_dance_for_music('嘻哈风格wav.wav')
     r2 = generate_dance_for_music('嘻哈风格mp3.mp3')
     a = 1
-

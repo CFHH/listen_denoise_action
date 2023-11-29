@@ -71,7 +71,7 @@ batch_size: 20 #80, gpu mem>24G; 20, gpu mem>10G
 num_dataloader_workers: 4
 pruning_amount: 0.0
 quantization: false
-Trainer:
+Trainer:  # https://lightning.ai/docs/pytorch/stable/common/trainer.html
     accelerator: cpu #gpu cpu
     devices: 1 #[0] 1
     accumulate_grad_batches: 1
