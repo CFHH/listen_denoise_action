@@ -7,6 +7,7 @@ import os
 import random
 import json
 from eval import cache_model, generate_dance_for_music, bvh2uedata, g_upload_path
+import codecs
 
 
 app = Flask(__name__)
@@ -40,11 +41,21 @@ def file_upload():
     file = request.files.get('file')
     if not file:
         return 'no file chosen'
-    filename = secure_filename(file.filename)
+    filename = file.filename
+    #filename = secure_filename(file.filename)
     if '.' not in filename or filename.split('.')[-1] not in ['wav', 'mp3']:
         return 'file ext not supported'
-    file.save(os.path.join(g_upload_path, file.filename))
-    return 'success'
+    #file.save(os.path.join(g_upload_path, filename))
+
+    encoder = codecs.getincrementalencoder('utf-8')()
+    filename = encoder.encode(filename)
+
+    content = filename
+    response = make_response(content, 200)
+    response.headers['Content-Type'] = 'text/plain;charset=UTF-8'
+    response.headers['audio'] = filename
+
+    return response
 
 
 @app.route("/get_motion")
@@ -79,7 +90,8 @@ def upload_and_generate():
         error = 'no file chosen'
         print(error)
         return error
-    filename = secure_filename(file.filename)
+    filename = file.filename
+    #filename = secure_filename(file.filename)
     if filename is not None:
         print(f'upload_and_generate(), received {file.filename}, {filename}')
     if '.' not in filename or filename.split('.')[-1] not in ['wav', 'mp3']:
@@ -99,9 +111,12 @@ def upload_and_generate():
         content = error
         response = make_response(content, 200)
     else:
+        encoder = codecs.getincrementalencoder('utf-8')()
+        filename = encoder.encode(filename)  # json_data['audio']
+
         content = json.dumps(json_data['motion'])
         response = make_response(content, 200)
-        response.headers['audio'] = json_data['audio']
+        response.headers['audio'] = filename
     return response
 
 
