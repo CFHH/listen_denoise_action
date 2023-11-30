@@ -50,14 +50,15 @@ def cache_model():
     return g_model
 
 
-def generate_dance_for_music(file_name, style_token='gFF'):
+def generate_dance_for_music(file_name, style_token='gFF', start_seconds=0):
     """
     :param file_name: 是上传目录里的文件
     :param style_token: gOK表示流行，gFF表示AI生成的音乐
+    :param start_seconds:
     :return:
     """
     valid_styles = ['gOK', 'gFF']
-    print(f'generate_dance_for_music(), file_name={file_name}, style={style_token}')
+    print(f'generate_dance_for_music(), file_name={file_name}, style={style_token}, start_seconds={start_seconds}')
     global g_model, g_eval_path, g_upload_path, g_audio_feats_columns, g_all_styles, gpu, g_gen_seconds
     if g_model is None:
         cache_model()
@@ -93,11 +94,19 @@ def generate_dance_for_music(file_name, style_token='gFF'):
     duration = r['duration']
     pkl_data = r['data']
 
-    fps = 30
-    clip_seconds = min(duration, g_gen_seconds)
-    nframes = min(int(clip_seconds * fps), pkl_data.shape[0])
+    if duration < start_seconds:
+        error = f'duration({duration}) < start_seconds({start_seconds})'
+        print(error)
+        return error, json_str
 
-    ctrl = pkl_data[0:nframes]
+    fps = 30
+
+    start_frame = start_seconds * fps
+    clip_seconds = min(duration - start_seconds, g_gen_seconds)
+    nframes = min(int(clip_seconds * fps), pkl_data.shape[0] - start_frame)
+    end_frame = start_frame + nframes
+
+    ctrl = pkl_data[start_frame : end_frame]
     ctrl = ctrl[g_audio_feats_columns]
     ctrl = nans2zeros(torch.from_numpy(ctrl.values).float().unsqueeze(0))
     nbatch = ctrl.size(0)
