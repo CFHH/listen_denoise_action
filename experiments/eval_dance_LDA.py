@@ -119,7 +119,7 @@ def eval(clip_seconds=20, use_gpu=True, render_video=True):
                 gen_cnt = int(duration / length_s)
         length = length_s * fps
 
-        style_token = wavfile.split('_')[1]
+        style_token = wavfile.split('_')[-2]
         for postfix in range(gen_cnt):  # 生成几段，每段长length_s秒
             start_time = time.time()
             input_file = f'{wavfile}.audio29_{fps}fps.pkl'
