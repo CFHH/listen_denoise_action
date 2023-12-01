@@ -16,8 +16,6 @@ def load_bvh_motion_new(filename, data_scaled100 = True, fill_to_2exp = False):
         parents = []
         names = []
         offsets = np.array([]).reshape((0, 3))
-        positions = np.array([]).reshape((0, 3))
-        rotations = np.array([]).reshape((0, 72))
         for n in all_nodes:
             # names
             names.append(n.name)
@@ -30,15 +28,19 @@ def load_bvh_motion_new(filename, data_scaled100 = True, fill_to_2exp = False):
             off = bvh.joint_offset(n.name)
             off = np.array([off])
             offsets = np.append(offsets, off, axis=0)
+
+        node_cnt = len(names)
+        positions = np.array([]).reshape((0, 3))
+        rotations = np.array([]).reshape((0, node_cnt * 3))
  
         # frame data 
         for frame in bvh.frames:
             data_block = np.array(list(map(float, frame)))
-            assert len(data_block) == 75
+            assert len(data_block) == node_cnt * 3 + 3
             position = data_block[0:3]
             rotation = data_block[3:]
             positions = np.append(positions, position.reshape(1, 3), axis=0)
-            rotations = np.append(rotations, rotation.reshape(1, 72), axis=0)
+            rotations = np.append(rotations, rotation.reshape(1, node_cnt * 3), axis=0)
 
     #剩余空间都用最后的数据填满，凑成2的N次方个
     # if fill_to_2exp:
@@ -50,7 +52,7 @@ def load_bvh_motion_new(filename, data_scaled100 = True, fill_to_2exp = False):
     if data_scaled100:
         positions /= 100.0
         offsets /= 100.0
-    rotations = rotations.reshape(-1, 24, 3)
+    rotations = rotations.reshape(-1, node_cnt, 3)
 
     return positions, rotations, frame_time, names, parents, offsets
 
