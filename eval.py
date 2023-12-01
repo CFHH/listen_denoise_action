@@ -162,7 +162,7 @@ def generate_action_for_audio(audio_filename, style_token='gFF', start_seconds=0
     audio_cond = model.standardizeInput(ctrl)  # g_cond
 
     # do_synthesize(models, l_conds, g_conds, out_file_name, postfix, trim, dest_dir, guidance_factors, gpu, render_video, outfile)
-    print('generating dance ...')
+    print('generating action ...')
     device = torch.device(gpu)
     batch = audio_cond.to(device), style_cond.to(device), None
     models = [model]
@@ -259,6 +259,8 @@ def test_for_ue_genea():
 
 
 if __name__ == "__main__":
+    dic = {'a':1}
+    a = 'a1' in dic.keys()
     test_for_ue_genea()
     cache_all_models()
     #generate_action_for_audio('test_gOK.wav', style_token='gOK', start_seconds=0, gen_seconds=10)
