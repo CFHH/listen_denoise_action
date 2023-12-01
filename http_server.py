@@ -106,7 +106,7 @@ def upload_and_generate():
     if style is None or style not in ['gOK', 'gFF']:
         style = 'gFF'
 
-    error, json_data = generate_dance_for_music(filename, style_token=style)
+    error, json_data = generate_dance_for_music(filename, style_token=style, start_seconds=30)
     if error is not None:
         content = error
         response = make_response(content, 200)
