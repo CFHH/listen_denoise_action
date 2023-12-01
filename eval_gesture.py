@@ -196,6 +196,24 @@ def bvh2uedata(bvh_filename):
     return msg_arr
 
 
+def test():
+    # 给UE测试用
+    import glob, tqdm
+    data_path = './results/generated/gen_frankenstein_v2/bvh'
+    bvh_files = glob.glob(os.path.join(data_path, '*.bvh'))
+    bvh_files.sort()
+    for bvh_file in tqdm.tqdm(bvh_files):
+        motion_name = os.path.basename(bvh_file)
+        motion_name = motion_name.split('.')[0]
+        motion_name = motion_name[0:-4]
+        json_data = bvh2uedata(bvh_file)
+        #json_str = json.dumps(json_data)
+        save_file = os.path.join(data_path, f'{motion_name}.json')
+        with open(save_file, "w") as json_file:
+            json.dump(json_data, json_file, indent=4)
+    return
+
+
 if __name__ == "__main__":
     cache_model()
     a = 1
