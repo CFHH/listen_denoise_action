@@ -182,7 +182,7 @@ def eval(clip_seconds=20, use_gpu=True, render_video=True):
 
 
 def bvh2mp4():
-    data_path = '../results/generated/gen_frankenstein'
+    data_path = '../results/generated/gesture_LDA'
     wav_files = glob.glob(os.path.join(data_path, '*.wav'))
     wav_files.sort()
 

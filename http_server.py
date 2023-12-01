@@ -6,20 +6,15 @@ import glob
 import os
 import random
 import json
-from eval import cache_model, generate_dance_for_music, bvh2uedata, g_upload_path
+from eval import cache_all_models, generate_action_for_audio, get_model_config, bvh2uedata
 import codecs
 
 
 app = Flask(__name__)
 
-visit_number = 0
+
 @app.route("/")
 def index():
-    """
-    global visit_number
-    visit_number = visit_number + 1
-    return "Hello, World %i" % visit_number
-    """
     #return render_template('upload_file.html')
     """
     style = request.args.get("style")
@@ -29,6 +24,7 @@ def index():
     return render_template(f'upload_and_generate_{style}.html')
     """
     return render_template(f'upload_and_generate.html')
+
 
 @app.route("/test")
 def test():
@@ -45,18 +41,15 @@ def file_upload():
     #filename = secure_filename(file.filename)
     if '.' not in filename or filename.split('.')[-1] not in ['wav', 'mp3']:
         return 'file ext not supported'
-    #file.save(os.path.join(g_upload_path, filename))
+    #file.save(os.path.join('./http_data/upload', filename))
 
     encoder = codecs.getincrementalencoder('utf-8')()
     filename = encoder.encode(filename)
-
     content = filename
     response = make_response(content, 200)
     response.headers['Content-Type'] = 'text/plain;charset=UTF-8'
     response.headers['audio'] = filename
-
     return response
-
 
 @app.route("/get_motion")
 def get_motion():
@@ -72,24 +65,23 @@ def get_motion():
             #json_data = {'error': 'arg error'}
     else:
         music_name = secure_filename(music_name)
-        error, motion_data = generate_dance_for_music(music_name)
+        error, motion_data = generate_action_for_audio(music_name)
         #json_data = {'error': error, 'motion': motion_data}
     return motion_data
+
 
 @app.route("/upload_and_generate", methods=['POST'])
 def upload_and_generate():
     """
     style = request.args.get("style")
-    if style is None or style not in ['gOK', 'gFF']:
-        error = f'style is invalid'
-        print(error)
-        return error
+    start = request.args.get("start")
     """
     file = request.files.get('file')
     if not file:
         error = 'no file chosen'
         print(error)
         return error
+
     filename = file.filename
     #filename = secure_filename(file.filename)
     if filename is not None:
@@ -98,22 +90,28 @@ def upload_and_generate():
         error = 'file ext not supported'
         print(error)
         return error
-    file.save(os.path.join(g_upload_path, file.filename))
-    print(f'Uploaded file {filename}')
 
     basename = filename.split('.')[0]
     style = basename.split('_')[-1]
-    if style is None or style not in ['gOK', 'gFF']:
+    if style is None:
         style = 'gFF'
+    model_config = get_model_config(style)
+    if model_config is None:
+        style = 'gFF'
+        model_config = get_model_config(style)
 
-    error, json_data = generate_dance_for_music(filename, style_token=style, start_seconds=30)
+    upload_path = model_config['upload_path']
+    file.save(os.path.join(upload_path, filename))
+    print(f'Uploaded file {filename}')
+
+    start = 30
+    error, json_data = generate_action_for_audio(filename, style_token=style, start_seconds=start)
     if error is not None:
         content = error
         response = make_response(content, 200)
     else:
         encoder = codecs.getincrementalencoder('utf-8')()
         filename = encoder.encode(filename)  # json_data['audio']
-
         content = json.dumps(json_data['motion'])
         response = make_response(content, 200)
         response.headers['audio'] = filename
@@ -121,6 +119,6 @@ def upload_and_generate():
 
 
 if __name__ == "__main__":
-    cache_model()
+    cache_all_models()
     os.makedirs('./bvh/', exist_ok=True)
     app.run(host='0.0.0.0', port=5000)  # 127.0.0.1只能本机访问，0.0.0.0能局域网访问
