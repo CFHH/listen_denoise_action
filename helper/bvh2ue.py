@@ -1,5 +1,5 @@
 import numpy as np
-from helper.smpl_bvh_writer import ROTATION_SEQ, ROTATION_BVH2SMPL, SMPL_JOINTS_NAMES
+from helper.smpl_bvh_writer import ROTATION_SMPL2BVH, ROTATION_BVH2SMPL, SMPL_JOINTS_NAMES
 from scipy.spatial.transform import Rotation
 
 
@@ -38,6 +38,8 @@ SMPL_JOINTS_REST = np.array(
     ]
 )
 
+SMPL_UE_ROOT_OFFSET = np.array([-0.0363, 91.213097, 4.3399]) / 100
+
 
 def bvh2ueactor(root_position, rotation):
     """
@@ -50,7 +52,7 @@ def bvh2ueactor(root_position, rotation):
     root_position[..., 0] *= -1
     root_position[..., 2] *= -1
 
-    rest_euler = SMPL_JOINTS_REST[ROTATION_SEQ] #smpl->bvh
+    rest_euler = SMPL_JOINTS_REST[ROTATION_SMPL2BVH] #smpl->bvh
     rest_rot = Rotation.from_euler('xyz', rest_euler, degrees=False)
     mat_rest = rest_rot.as_matrix() # [24, 3, 3]
     mat_rest_inv = np.linalg.inv(mat_rest) # [24, 3, 3]
@@ -93,5 +95,31 @@ def send_motion(rotations, root_pos):
         quaternionWS = rot_end.as_quat()
 
         msg = msg + SMPL_JOINTS_NAMES[i] +  ":" + "{:.9f}".format(locationWS[0])+ "," + "{:.9f}".format(locationWS[2]) +  "," + "{:.9f}".format(locationWS[1]) +  "," + "{:.9f}".format(-quaternionWS[0]) +  "," + "{:.9f}".format(quaternionWS[1])+  "," + "{:.9f}".format(-quaternionWS[2])+ "," + "{:.9f}".format(quaternionWS[3]) + "|"
+    msg = msg + "|"
+    return msg
+
+
+from helper.genea_skeleton import GENEA_JOINTS_NAMES_SIMPLIFIED, GENEA_JOINTS_REST_SIMPLIFIED, GENEA_ROTATION_ORDER
+def send_motion_genea(rotations, root_pos):
+    msg = ""
+
+    for i in range(len(rotations)):
+        locationWS = np.zeros(3)
+        if i==0:
+            locationWS = root_pos
+            #print(locationWS)
+
+        rest_rot = Rotation.from_euler('xyz', GENEA_JOINTS_REST_SIMPLIFIED[i], degrees=False)
+        mat_rest = rest_rot.as_matrix()
+        mat_rest_inv = np.linalg.inv(mat_rest)
+
+        rot = Rotation.from_euler(GENEA_ROTATION_ORDER, rotations[i], degrees=True)
+        rot_mat = rot.as_matrix()
+
+        rot_mat = (mat_rest_inv @ rot_mat @ mat_rest)
+        rot_end = Rotation.from_matrix(rot_mat)
+        quaternionWS = rot_end.as_quat()
+
+        msg = msg + GENEA_JOINTS_NAMES_SIMPLIFIED[i] +  ":" + "{:.9f}".format(locationWS[0])+ "," + "{:.9f}".format(locationWS[2]) +  "," + "{:.9f}".format(locationWS[1]) +  "," + "{:.9f}".format(-quaternionWS[0]) +  "," + "{:.9f}".format(quaternionWS[1])+  "," + "{:.9f}".format(-quaternionWS[2])+ "," + "{:.9f}".format(quaternionWS[3]) + "|"
     msg = msg + "|"
     return msg

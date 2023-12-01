@@ -8,7 +8,7 @@ from gen_music_pkl import process_audio
 from synthesize import nans2zeros, sample_mixmodels
 from utils.motion_dataset import styles2onehot
 from helper.smpl_bvh_loader import load_bvh_motion
-from helper.bvh2ue import bvh2ueactor, send_motion
+from helper.bvh2ue import send_motion
 import json
 import math
 

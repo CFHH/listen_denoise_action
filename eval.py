@@ -8,7 +8,7 @@ from gen_music_pkl import process_audio
 from synthesize import nans2zeros, sample_mixmodels
 from utils.motion_dataset import styles2onehot
 from helper.smpl_bvh_loader import load_bvh_motion
-from helper.bvh2ue import bvh2ueactor, send_motion
+from helper.bvh2ue import send_motion, send_motion_genea, SMPL_UE_ROOT_OFFSET
 import json
 import math
 
@@ -174,9 +174,15 @@ def generate_action_for_audio(audio_filename, style_token='gFF', start_seconds=0
         clips = sample_mixmodels(models, batches, guidance_factors)
         model.log_results(clips, bvh_filename, "", logdir=model_config['bvh_path'], render_video=False)
 
+    def style_to_skeleton(style):
+        if style == 'gSP':
+            return 'genea'
+        else:
+            return 'smpl'
+
     print('translating for UE ...')
     bvh_filename = os.path.join(model_config['bvh_path'], f'{bvh_filename}.bvh')
-    ue_data = bvh2uedata(bvh_filename)
+    ue_data = bvh2uedata(bvh_filename, skeleton=style_to_skeleton(style_token))
     json_data = {
         'audio': audio_filename,
         'fps':fps,
@@ -187,20 +193,37 @@ def generate_action_for_audio(audio_filename, style_token='gFF', start_seconds=0
     return error, json_data
 
 
-def bvh2uedata(bvh_filename):
+def bvh2uedata(bvh_filename, skeleton='smpl'):
+    """
+    :param bvh_filename:
+    :param skeleton: smpl, genea
+    :return:
+    """
     root_position, rotation, frametime, name, parent, offsets = load_bvh_motion(bvh_filename, True)
-    root_position *= 100
-    root_position -= [-0.0363, 91.213097, 4.3399]
-    msg_arr = []
-    for idx in range(len(rotation)):
-        msg = send_motion(rotation[idx], root_position[idx])
-        msg_arr.append(msg)
-    #json_str = json.dumps(msg_arr)
-    #return json_str
+    if skeleton == 'smpl':
+        root_position -= SMPL_UE_ROOT_OFFSET
+        root_position *= 100
+        msg_arr = []
+        for idx in range(len(rotation)):
+            msg = send_motion(rotation[idx], root_position[idx])
+            msg_arr.append(msg)
+        #json_str = json.dumps(msg_arr)
+        #return json_str
+    elif skeleton == 'genea':
+        from helper.genea_skeleton import GENEA_SIMPLIFIED_INDEX, GENEA_UE_ROOT_OFFSET
+        rotation = rotation[:,GENEA_SIMPLIFIED_INDEX,:]
+        root_position -= GENEA_UE_ROOT_OFFSET
+        root_position *= 100
+        msg_arr = []
+        for idx in range(len(rotation)):
+            msg = send_motion_genea(rotation[idx], root_position[idx])
+            msg_arr.append(msg)
+    else:
+        assert False, f'skeleton={skeleton}'
     return msg_arr
 
 
-def test():
+def test_for_ue_smpl():
     # 给UE测试用
     import glob, tqdm
     data_path = './results/generated/gen_frankenstein_v2/bvh'
@@ -210,7 +233,24 @@ def test():
         motion_name = os.path.basename(bvh_file)
         motion_name = motion_name.split('.')[0]
         motion_name = motion_name[0:-4]
-        json_data = bvh2uedata(bvh_file)
+        json_data = bvh2uedata(bvh_file, skeleton='smpl')
+        #json_str = json.dumps(json_data)
+        save_file = os.path.join(data_path, f'{motion_name}.json')
+        with open(save_file, "w") as json_file:
+            json.dump(json_data, json_file, indent=4)
+    return
+
+def test_for_ue_genea():
+    # 给UE测试用
+    import glob, tqdm
+    data_path = './results/test/genea'
+    bvh_files = glob.glob(os.path.join(data_path, '*.bvh'))
+    bvh_files.sort()
+    for bvh_file in tqdm.tqdm(bvh_files):
+        motion_name = os.path.basename(bvh_file)
+        motion_name = motion_name.split('.')[0]
+        motion_name = motion_name[0:-4]
+        json_data = bvh2uedata(bvh_file, skeleton='genea')
         #json_str = json.dumps(json_data)
         save_file = os.path.join(data_path, f'{motion_name}.json')
         with open(save_file, "w") as json_file:
@@ -219,6 +259,7 @@ def test():
 
 
 if __name__ == "__main__":
+    test_for_ue_genea()
     cache_all_models()
     #generate_action_for_audio('test_gOK.wav', style_token='gOK', start_seconds=0, gen_seconds=10)
     generate_action_for_audio('test_gFF.wav', style_token='gFF', start_seconds=0, gen_seconds=10)
