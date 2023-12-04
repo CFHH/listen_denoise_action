@@ -200,6 +200,7 @@ def bvh2uedata(bvh_filename, skeleton='smpl'):
     :return:
     """
     root_position, rotation, frametime, name, parent, offsets = load_bvh_motion(bvh_filename, True)
+    print('bvh2uedata(), frames = %d, %d' % (root_position.shape[0], rotation.shape[0]))
     if skeleton == 'smpl':
         root_position -= SMPL_UE_ROOT_OFFSET
         root_position *= 100

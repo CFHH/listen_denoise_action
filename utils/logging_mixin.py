@@ -41,7 +41,7 @@ def warmup_pipeline(dataset_root, skeleton_type):
 
 def custom_feats_to_bvh(pred_clips, dataset_root, skeleton_type, from_train=False):
     global warmed_pipes, bone_feature_columns
-    if warmed_pipes.has_key(skeleton_type):
+    if skeleton_type in warmed_pipes.keys():
         warmed_pipe = warmed_pipes[skeleton_type]
     else:
         warmed_pipe = warmup_pipeline(dataset_root, skeleton_type)
