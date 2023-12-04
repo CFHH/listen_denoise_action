@@ -119,7 +119,7 @@ def upload_and_generate():
 
 
 if __name__ == "__main__":
-    # nohup python http_server.py > loghttp.log 2>&1 &
+    # nohup python -u http_server.py > loghttp.log 2>&1 &
     cache_all_models()
     os.makedirs('./bvh/', exist_ok=True)
     app.run(host='0.0.0.0', port=5000)  # 127.0.0.1只能本机访问，0.0.0.0能局域网访问

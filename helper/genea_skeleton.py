@@ -61,7 +61,7 @@ GENEA_JOINTS_NAMES_FULL = [
                         'LeftToeBase'       #56
 ]
 
-GENEA_JOINTS_PARENTS_FULL = [
+GENEA_JOINTS_PARENTS_FULL = [  # 通过调用 load_bvh_motion 获得
     -1,  0,  1,  2,  3,
      4,  5,  6,  4,  8,
      9, 10, 11, 12, 13,
