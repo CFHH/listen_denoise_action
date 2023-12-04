@@ -17,12 +17,12 @@ from pymo.parsers import BVHParser
 from pymo.pipeline import get_pipeline, transform, transform2pkl, inverse_transform
 
 
-warmed_pipes = {}
-expected_column_cnt = {}
+warmed_pipes = {}          # pipe缓存
+bone_feature_columns = {}  # 训练或生成时的骨骼数据个数
 
 
 def warmup_pipeline(dataset_root, skeleton_type):
-    global warmed_pipes
+    global warmed_pipes, bone_feature_columns
     skeleton_bvh = os.path.join(dataset_root, 'skeleton.bvh')
     bvh_parser = BVHParser()
     bvh_data = bvh_parser.parse(skeleton_bvh)
@@ -34,18 +34,18 @@ def warmup_pipeline(dataset_root, skeleton_type):
 
     bone_feature_filename = os.path.join(dataset_root, 'pose_features.expmap.txt')
     train_columns = np.loadtxt(bone_feature_filename, dtype=str).tolist()
-    expected_column_cnt[skeleton_type] = len(train_columns)
+    bone_feature_columns[skeleton_type] = len(train_columns)
 
     return pipe
 
 
 def custom_feats_to_bvh(pred_clips, dataset_root, skeleton_type, from_train=False):
-    global warmed_pipes
+    global warmed_pipes, bone_feature_columns
     if warmed_pipes.has_key(skeleton_type):
         warmed_pipe = warmed_pipes[skeleton_type]
     else:
         warmed_pipe = warmup_pipeline(dataset_root, skeleton_type)
-    expected_columns = expected_column_cnt[skeleton_type]
+    expected_columns = bone_feature_columns[skeleton_type]
 
     columns = pred_clips.shape[-1]
     if columns > expected_columns:
