@@ -35,7 +35,7 @@ def mirror(bvh_data):
 
     # 平移：x=-x，z=-z，y不变
     bvh_data.values['Hips_Xposition'] *= -1
-    bvh_data.values['Hips_Zposition'] *= -1
+    # bvh_data.values['Hips_Zposition'] *= -1  # TODO
 
     # 旋转：1、左右互换；2、所有节点，x旋转不变，y旋转变相反数，z旋转变相反数
     for name in left_right_joints:
@@ -190,7 +190,7 @@ def process_paired_dataset():
         motion_files.sort()
         for bvh_filename in tqdm.tqdm(motion_files):
             print("Process %s" % bvh_filename)
-            motion_name = process_motion(bvh_filename, motions_cols, save_path, all_files, process_mirror=False)
+            motion_name = process_motion(bvh_filename, motions_cols, save_path, all_files, process_mirror=True)
             audio_file_name = f'./data/my_gesture_data/GENEA/{sub_dataset_name}/audio/{motion_name}.wav'
             process_audio(audio_file_name, save_path, None, align_to_raw_data=False, process_mirror=True, genra='_gSP')
             #break
@@ -212,5 +212,5 @@ def process_new_dataset():
 
 
 if __name__ == "__main__":
-    #process_paired_dataset()
-    process_new_dataset()
+    process_paired_dataset()
+    #process_new_dataset()
